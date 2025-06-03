@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, TrendingUp, CheckCircle, Heart, Sparkles } from "lucide-react"
 import Link from "next/link"
@@ -78,19 +79,6 @@ export default function CheckIn() {
     } else {
       // Complete check-in and show AI coach
       setShowAICoach(true)
-
-      // Send responses to AI coach
-      const summary = `Here's my weekly check-in:
-      
-Overall feeling: ${responses.overallFeeling}
-Progress rating: ${responses.progressRating}/10
-Challenges: ${responses.challenges}
-Wins: ${responses.wins}
-Next week focus: ${responses.nextWeekFocus}
-
-Please provide personalized advice, encouragement, and specific suggestions based on my responses.`
-
-      // This would trigger the AI coach conversation
     }
   }
 
@@ -151,13 +139,13 @@ Please provide personalized advice, encouragement, and specific suggestions base
                             </p>
 
                             {responses.overallFeeling === "excellent" || responses.overallFeeling === "good" ? (
-                              <div className="mb-4 p-4 bg-sage-50 border border-sage-100 rounded-xl">
+                              <div className="mb-4 p-4 bg-green-50 border border-green-100 rounded-xl">
                                 <div className="flex items-center mb-2">
-                                  <CheckCircle className="h-4 w-4 text-sage-500 mr-2" />
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                                   <span className="font-medium text-stone-800">Beautiful momentum!</span>
                                 </div>
                                 <p className="text-stone-700 text-sm font-light">
-                                  You're flowing beautifully with your goals. I love seeing this progress.
+                                  {"You're flowing beautifully with your goals. I love seeing this progress."}
                                 </p>
                               </div>
                             ) : (
@@ -167,7 +155,7 @@ Please provide personalized advice, encouragement, and specific suggestions base
                                   <span className="font-medium text-stone-800">Gentle reminder</span>
                                 </div>
                                 <p className="text-stone-700 text-sm font-light">
-                                  Every journey has its ebbs and flows. Let's find your rhythm again together.
+                                  {"Every journey has its ebbs and flows. Let's find your rhythm again together."}
                                 </p>
                               </div>
                             )}
@@ -176,7 +164,7 @@ Please provide personalized advice, encouragement, and specific suggestions base
                               <div>
                                 <h4 className="font-medium text-stone-800 mb-2">Thoughtful Suggestions:</h4>
                                 <ul className="text-sm space-y-2 ml-4 font-light">
-                                  <li>• Break down your next week's focus into daily micro-intentions</li>
+                                  <li>{"• Break down your next week's focus into daily micro-intentions"}</li>
                                   <li>• Address the challenges you mentioned with gentle, specific steps</li>
                                   <li>• Build on your wins by noticing what made them possible</li>
                                   <li>• Schedule 15 minutes daily for mindful goal reflection</li>
@@ -276,7 +264,7 @@ Please provide personalized advice, encouragement, and specific suggestions base
                       className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
                       variant="outline"
                     >
-                      <CheckCircle className="h-4 w-4 mr-2 text-sage-500" />
+                      <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                       View Timeline
                     </Button>
                   </Link>
@@ -353,4 +341,97 @@ Please provide personalized advice, encouragement, and specific suggestions base
                           className="flex items-center space-x-3 p-3 rounded-xl hover:bg-stone-50 transition-colors"
                         >
                           <RadioGroupItem value={option.value} id={option.value} />
-                          <Label htmlFor={option.value} className="flex-1 cursor-pointer font-light">\
+                          <Label htmlFor={option.value} className="flex-1 cursor-pointer font-light">
+                            {option.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </RadioGroup>
+                )}
+
+                {currentQuestion.type === "textarea" && (
+                  <Textarea
+                    value={responses[currentQuestion.id as keyof typeof responses]}
+                    onChange={(e) => handleResponseChange(currentQuestion.id, e.target.value)}
+                    placeholder={currentQuestion.placeholder}
+                    className="min-h-32 rounded-xl border-stone-200 focus-visible:ring-rose-400"
+                  />
+                )}
+
+                <div className="flex justify-between mt-8">
+                  <Button
+                    onClick={handlePrevious}
+                    disabled={currentStep === 0}
+                    variant="outline"
+                    className="rounded-full border-stone-200 text-stone-600 hover:bg-stone-50"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                    className="rounded-full bg-rose-400 hover:bg-rose-500 text-white"
+                  >
+                    {isLastStep ? "Complete Check-in" : "Next"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Progress Summary */}
+          <div className="space-y-6">
+            <Card className="border-0 rounded-3xl shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-serif text-stone-800">Your Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {questions.map((question, index) => (
+                    <div
+                      key={question.id}
+                      className={`p-3 rounded-xl transition-colors ${
+                        index === currentStep
+                          ? "bg-rose-50 border border-rose-200"
+                          : responses[question.id as keyof typeof responses]
+                            ? "bg-green-50 border border-green-200"
+                            : "bg-stone-50 border border-stone-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-stone-800">
+                          {index + 1}. {question.title.split("?")[0]}?
+                        </span>
+                        {responses[question.id as keyof typeof responses] && (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 rounded-3xl shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-serif text-stone-800">What to Expect</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm text-stone-600 font-light">
+                  <p>After completing your reflection, you'll receive:</p>
+                  <ul className="space-y-2 ml-4">
+                    <li>• Personalized guidance from your AI coach</li>
+                    <li>• Specific suggestions for the week ahead</li>
+                    <li>• Thoughtful questions for deeper reflection</li>
+                    <li>• Encouragement tailored to your progress</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
