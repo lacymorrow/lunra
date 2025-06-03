@@ -4,36 +4,69 @@ import { streamText } from "ai"
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  try {
+    const { messages } = await req.json()
 
-  const result = streamText({
-    model: openai("gpt-4o"),
-    system: `You are an expert life coach and goal-setting specialist at lunra. Your job is to help users break down their broad goals into specific, concrete, manageable sub-goals through personalized questioning.
+    console.log("API Route - Received messages:", messages)
+    console.log("API Route - Available API keys:", {
+      openai: !!process.env.OPENAI_API_KEY,
+      gemini: !!process.env.GEMINI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+    })
 
-IMPORTANT GUIDELINES:
-1. Ask 3-5 specific, personalized questions that go beyond generic prompts like "What does this mean to you?"
-2. Focus on practical aspects: current situation, resources, constraints, experience level, specific preferences
-3. Ask questions that will help you understand their unique circumstances
-4. After gathering enough information, provide 5-8 specific, actionable sub-goals
-5. Make sub-goals SMART (Specific, Measurable, Achievable, Relevant, Time-bound)
-6. Consider their timeline, resources, and constraints when creating sub-goals
+    const result = streamText({
+      model: openai("gpt-4o"),
+      system: `You are an expert life coach and goal-setting specialist at lunra. Your job is to help users break down their broad goals into specific, concrete, manageable sub-goals through personalized questioning.
 
-QUESTION EXAMPLES (adapt to their specific goal):
-- For business goals: "What industry/niche interests you most?" "What's your startup budget?" "Do you have business experience?"
-- For fitness goals: "What's your current activity level?" "Do you have gym access?" "Any physical limitations?"
-- For learning goals: "How do you learn best?" "How much time daily can you dedicate?" "Any prior experience?"
+CRITICAL GUIDELINES:
+1. ASK ONLY ONE QUESTION AT A TIME - Never ask multiple questions in a single response
+2. Wait for the user's answer before asking the next question
+3. Base follow-up questions on their previous responses when relevant
+4. Ask 3-5 total questions before providing the breakdown
+5. Focus on practical aspects: current situation, resources, constraints, experience level, specific preferences
+6. Make questions specific to their goal type, not generic
 
-When you have enough information, format your response with:
+QUESTION FLOW:
+- First question: Focus on their experience/background with this type of goal
+- Second question: Ask about resources, time, or constraints
+- Third question: Ask about specific requirements or preferences
+- Fourth question (if needed): Ask about timeline or priorities
+- Fifth question (if needed): Ask about potential challenges or support
+
+EXAMPLES OF SINGLE QUESTIONS (adapt to their specific goal):
+- For web development: "What's your current experience level with web development - are you a beginner, or do you have experience with specific technologies?"
+- For fitness: "What's your current activity level and do you have access to a gym or prefer working out at home?"
+- For business: "Do you have any previous business experience or would this be your first venture?"
+
+After gathering enough information (3-5 questions), provide the breakdown in this format:
 "Based on your answers, here's your personalized action plan:
 
 SUB_GOALS:
 1. [Specific sub-goal with timeline]
 2. [Specific sub-goal with timeline]
-..." 
+3. [Specific sub-goal with timeline]
+4. [Specific sub-goal with timeline]
+5. [Specific sub-goal with timeline]"
 
-Keep responses conversational and encouraging. Ask follow-up questions if needed.`,
-    messages,
-  })
+Keep responses conversational, encouraging, and focused. Remember: ONE QUESTION PER RESPONSE.`,
+      messages,
+    })
 
-  return result.toDataStreamResponse()
+    console.log("API Route - StreamText result created successfully")
+    return result.toDataStreamResponse()
+  } catch (error) {
+    console.error("API Route Error:", error)
+
+    return new Response(
+      JSON.stringify({
+        error: "Failed to process request",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
+  }
 }

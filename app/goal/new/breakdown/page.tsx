@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles } from "lucide-react"
+import { ArrowLeft, CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useChat } from "ai/react"
 import { SiteHeader } from "@/components/site-header"
@@ -18,41 +18,76 @@ interface Goal {
 
 export default function GoalBreakdown() {
   const [goal, setGoal] = useState<Goal | null>(null)
-  const [currentStep, setCurrentStep] = useState(0)
   const [subGoals, setSubGoals] = useState<string[]>([])
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [questionCount, setQuestionCount] = useState(0)
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
-    initialMessages: [],
     onFinish: (message) => {
-      // Parse AI response to extract sub-goals or next questions
+      console.log("AI Response:", message.content)
+      setError(null) // Clear any previous errors
+
+      // Count questions asked (assistant messages that don't contain SUB_GOALS)
+      if (message.role === "assistant" && !message.content.includes("SUB_GOALS:")) {
+        setQuestionCount((prev) => prev + 1)
+      }
+
+      // Parse AI response to extract sub-goals
       if (message.content.includes("SUB_GOALS:")) {
-        const goals = message.content
-          .split("SUB_GOALS:")[1]
+        const goalSection = message.content.split("SUB_GOALS:")[1]
+        const goals = goalSection
           .split("\n")
-          .filter((g) => g.trim())
+          .filter((g) => g.trim() && g.match(/^\d+\./))
+          .map((g) => g.replace(/^\d+\.\s*/, "").trim())
+        console.log("Extracted sub-goals:", goals)
         setSubGoals(goals)
       }
     },
+    onError: (error) => {
+      console.error("Chat error details:", error)
+      setError(`AI service error: ${error.message || "Unknown error occurred"}`)
+    },
   })
 
+  // Initialize the conversation when goal is loaded
   useEffect(() => {
     const storedGoal = localStorage.getItem("newGoal")
-    if (storedGoal) {
-      const parsedGoal = JSON.parse(storedGoal)
-      setGoal(parsedGoal)
+    if (storedGoal && !hasInitialized) {
+      try {
+        const parsedGoal = JSON.parse(storedGoal)
+        setGoal(parsedGoal)
 
-      // Start the AI conversation
-      const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""} ${parsedGoal.timeline ? `I want to achieve this in: ${parsedGoal.timeline}` : ""}. Please ask me 3-5 specific, personalized questions to help break this down into concrete, manageable sub-goals. Don't ask generic questions like "What does this mean to you?" - instead ask specific questions about my situation, resources, experience level, constraints, or specific aspects of this goal.`
+        // Create initial prompt that asks for ONE question
+        const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${
+          parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""
+        } ${
+          parsedGoal.timeline ? `I want to achieve this in: ${parsedGoal.timeline}` : ""
+        }. Please ask me ONE specific, personalized question to help break this down into concrete, manageable sub-goals. Start with understanding my experience level or current situation with this type of goal.`
 
-      // Simulate sending initial message
-      fetch("/api/goal-breakdown", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: initialPrompt }] }),
-      })
+        console.log("Sending initial prompt:", initialPrompt)
+
+        // Send the initial message to start the conversation
+        setTimeout(() => {
+          append({
+            role: "user",
+            content: initialPrompt,
+          })
+        }, 1000)
+
+        setHasInitialized(true)
+      } catch (error) {
+        console.error("Error parsing stored goal:", error)
+        setError("Failed to load your goal. Please try creating a new goal.")
+      }
     }
-  }, [])
+  }, [append, hasInitialized])
+
+  // Debug: Log messages changes
+  useEffect(() => {
+    console.log("Messages updated:", messages)
+  }, [messages])
 
   if (!goal) {
     return (
@@ -103,11 +138,60 @@ export default function GoalBreakdown() {
                   AI Goal Coach
                 </CardTitle>
                 <CardDescription className="text-stone-600 font-light">
-                  Answer these thoughtful questions to get a personalized breakdown of your goal.
+                  Answer each question thoughtfully to get a personalized breakdown of your goal.
+                  {questionCount > 0 && subGoals.length === 0 && (
+                    <span className="block mt-1 text-rose-500">Question {questionCount} of 3-5</span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Error Display */}
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-red-800 font-medium">Something went wrong</p>
+                        <p className="text-red-600 text-sm mt-1">{error}</p>
+                        <Button
+                          onClick={() => {
+                            setError(null)
+                            setHasInitialized(false)
+                            setQuestionCount(0)
+                            // Retry initialization
+                            setTimeout(() => {
+                              const storedGoal = localStorage.getItem("newGoal")
+                              if (storedGoal) {
+                                const parsedGoal = JSON.parse(storedGoal)
+                                const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". Please ask me ONE specific question to help break this down.`
+                                append({
+                                  role: "user",
+                                  content: initialPrompt,
+                                })
+                                setHasInitialized(true)
+                              }
+                            }, 500)
+                          }}
+                          className="mt-3 text-sm bg-red-100 hover:bg-red-200 text-red-800"
+                          size="sm"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                  {messages.length === 0 && !isLoading && !error && (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Sparkles className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
+                    </div>
+                  )}
+
                   {messages.map((message, index) => (
                     <div
                       key={index}
@@ -156,17 +240,26 @@ export default function GoalBreakdown() {
                     value={input}
                     onChange={handleInputChange}
                     placeholder="Type your answer here..."
-                    disabled={isLoading}
+                    disabled={isLoading || !!error}
                     className="flex-1 rounded-xl border-stone-200 focus-visible:ring-rose-400"
                   />
                   <Button
                     type="submit"
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || !input.trim() || !!error}
                     className="rounded-full bg-rose-400 hover:bg-rose-500 text-white"
                   >
                     Send
                   </Button>
                 </form>
+
+                {/* Debug info - remove in production */}
+                <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                  <p>Debug: Messages count: {messages.length}</p>
+                  <p>Questions asked: {questionCount}</p>
+                  <p>Loading: {isLoading ? "Yes" : "No"}</p>
+                  <p>Has initialized: {hasInitialized ? "Yes" : "No"}</p>
+                  <p>Error: {error || "None"}</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -252,12 +345,14 @@ export default function GoalBreakdown() {
                   <div className="flex items-center">
                     <div
                       className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        messages.length > 1 ? "bg-sage-500" : "bg-stone-300"
+                        questionCount > 0 ? "bg-sage-500" : "bg-stone-300"
                       }`}
                     >
-                      {messages.length > 1 && <CheckCircle className="h-3 w-3 text-white" />}
+                      {questionCount > 0 && <CheckCircle className="h-3 w-3 text-white" />}
                     </div>
-                    <span className="text-sm text-stone-700 font-light">AI questions answered</span>
+                    <span className="text-sm text-stone-700 font-light">
+                      AI questions answered ({questionCount}/3-5)
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <div
