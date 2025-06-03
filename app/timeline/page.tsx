@@ -1,19 +1,162 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, Clock, Target, CheckCircle, Heart } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, Target, CheckCircle, Heart, Check } from "lucide-react"
 import Link from "next/link"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { XAxis, YAxis, ResponsiveContainer, Area, AreaChart } from "recharts"
 import { SiteHeader } from "@/components/site-header"
 
-export default function Timeline() {
-  const [selectedGoal, setSelectedGoal] = useState("business")
+interface SavedGoal {
+  id: number
+  title: string
+  description: string
+  timeline: string
+  progress: number
+  status: string
+  dueDate: string
+  subGoals: string[]
+  completedSubGoals: number
+  createdAt: string
+  milestones: Array<{
+    month: number
+    task: string
+    status: string
+    progress: number
+  }>
+}
 
-  const goals = {
+export default function Timeline() {
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
+  const [userGoals, setUserGoals] = useState<SavedGoal[]>([])
+
+  // Load goals from localStorage
+  useEffect(() => {
+    const storedGoals = localStorage.getItem("userGoals")
+    const currentGoalId = localStorage.getItem("currentGoalId")
+
+    if (storedGoals) {
+      const goals: SavedGoal[] = JSON.parse(storedGoals)
+      setUserGoals(goals)
+
+      // Set the selected goal to the most recent one or the current one
+      if (currentGoalId) {
+        setSelectedGoalId(Number.parseInt(currentGoalId))
+      } else if (goals.length > 0) {
+        setSelectedGoalId(goals[goals.length - 1].id)
+      }
+    }
+  }, [])
+
+  // Function to mark milestone as complete
+  const markMilestoneComplete = (goalId: number, milestoneIndex: number) => {
+    const updatedGoals = userGoals.map((goal) => {
+      if (goal.id === goalId) {
+        const updatedMilestones = [...goal.milestones]
+        const milestone = updatedMilestones[milestoneIndex]
+
+        if (milestone.status !== "completed") {
+          // Mark as completed
+          updatedMilestones[milestoneIndex] = {
+            ...milestone,
+            status: "completed",
+            progress: 100,
+          }
+
+          // Update next milestone to in-progress if it exists
+          if (milestoneIndex + 1 < updatedMilestones.length) {
+            const nextMilestone = updatedMilestones[milestoneIndex + 1]
+            if (nextMilestone.status === "pending") {
+              updatedMilestones[milestoneIndex + 1] = {
+                ...nextMilestone,
+                status: "in-progress",
+                progress: 10,
+              }
+            }
+          }
+
+          // Calculate new overall progress
+          const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
+          const newProgress = Math.round((completedMilestones / updatedMilestones.length) * 100)
+
+          // Update goal status based on progress
+          let newStatus = goal.status
+          if (newProgress === 100) {
+            newStatus = "completed"
+          } else if (newProgress > 50) {
+            newStatus = "on-track"
+          } else {
+            newStatus = "in-progress"
+          }
+
+          return {
+            ...goal,
+            milestones: updatedMilestones,
+            progress: newProgress,
+            completedSubGoals: completedMilestones,
+            status: newStatus,
+          }
+        }
+      }
+      return goal
+    })
+
+    setUserGoals(updatedGoals)
+    localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+  }
+
+  // Function to undo milestone completion
+  const undoMilestoneComplete = (goalId: number, milestoneIndex: number) => {
+    const updatedGoals = userGoals.map((goal) => {
+      if (goal.id === goalId) {
+        const updatedMilestones = [...goal.milestones]
+        const milestone = updatedMilestones[milestoneIndex]
+
+        if (milestone.status === "completed") {
+          // Mark as in-progress
+          updatedMilestones[milestoneIndex] = {
+            ...milestone,
+            status: "in-progress",
+            progress: 50,
+          }
+
+          // Update next milestone back to pending if it was auto-started
+          if (milestoneIndex + 1 < updatedMilestones.length) {
+            const nextMilestone = updatedMilestones[milestoneIndex + 1]
+            if (nextMilestone.status === "in-progress" && nextMilestone.progress === 10) {
+              updatedMilestones[milestoneIndex + 1] = {
+                ...nextMilestone,
+                status: "pending",
+                progress: 0,
+              }
+            }
+          }
+
+          // Calculate new overall progress
+          const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
+          const newProgress = Math.round((completedMilestones / updatedMilestones.length) * 100)
+
+          return {
+            ...goal,
+            milestones: updatedMilestones,
+            progress: newProgress,
+            completedSubGoals: completedMilestones,
+            status: "in-progress",
+          }
+        }
+      }
+      return goal
+    })
+
+    setUserGoals(updatedGoals)
+    localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+  }
+
+  // Fallback goals for demo purposes
+  const fallbackGoals = {
     business: {
       title: "Launch my own business",
       timeline: "12 months",
@@ -52,7 +195,11 @@ export default function Timeline() {
     { month: "Jun", business: 60, fitness: 85 },
   ]
 
-  const currentGoal = goals[selectedGoal as keyof typeof goals]
+  // Get current goal
+  const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
+
+  // Use fallback if no user goals
+  const displayGoal = currentGoal || fallbackGoals.business
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -101,32 +248,44 @@ export default function Timeline() {
         </div>
 
         {/* Goal Selector */}
-        <div className="mb-8">
-          <div className="flex gap-4">
-            <Button
-              variant={selectedGoal === "business" ? "default" : "outline"}
-              onClick={() => setSelectedGoal("business")}
-              className={
-                selectedGoal === "business"
-                  ? "bg-rose-400 hover:bg-rose-500 text-white rounded-full"
-                  : "border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full"
-              }
-            >
-              Business Goal
-            </Button>
-            <Button
-              variant={selectedGoal === "fitness" ? "default" : "outline"}
-              onClick={() => setSelectedGoal("fitness")}
-              className={
-                selectedGoal === "fitness"
-                  ? "bg-rose-400 hover:bg-rose-500 text-white rounded-full"
-                  : "border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full"
-              }
-            >
-              Fitness Goal
-            </Button>
+        {userGoals.length > 0 && (
+          <div className="mb-8">
+            <div className="flex gap-4 flex-wrap">
+              {userGoals.map((goal) => (
+                <Button
+                  key={goal.id}
+                  variant={selectedGoalId === goal.id ? "default" : "outline"}
+                  onClick={() => setSelectedGoalId(goal.id)}
+                  className={
+                    selectedGoalId === goal.id
+                      ? "bg-rose-400 hover:bg-rose-500 text-white rounded-full"
+                      : "border-stone-200 text-stone-700 hover:bg-stone-50 rounded-full"
+                  }
+                >
+                  {goal.title}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* No goals message */}
+        {userGoals.length === 0 && (
+          <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="text-center">
+              <Target className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-lg font-serif text-stone-800 mb-2">No goals created yet</h3>
+              <p className="text-stone-600 font-light mb-4">
+                Create your first goal to see your personalized timeline here.
+              </p>
+              <Link href="/create-goal">
+                <Button className="bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                  Create Your First Goal
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Timeline View */}
@@ -135,19 +294,19 @@ export default function Timeline() {
               <CardHeader>
                 <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                   <Calendar className="h-5 w-5 mr-2 text-rose-400" />
-                  {currentGoal.title} Timeline
+                  {displayGoal.title} Timeline
                 </CardTitle>
                 <CardDescription className="text-stone-600 font-light">
-                  {currentGoal.timeline} plan with key milestones
+                  {currentGoal ? currentGoal.timeline : displayGoal.timeline} plan with key milestones
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {currentGoal.milestones.map((milestone, index) => (
+                  {(currentGoal ? currentGoal.milestones : displayGoal.milestones).map((milestone, index) => (
                     <div key={index} className="flex items-start space-x-4">
                       <div className="flex flex-col items-center">
                         <div className={`w-4 h-4 rounded-full ${getStatusColor(milestone.status)}`}></div>
-                        {index < currentGoal.milestones.length - 1 && (
+                        {index < (currentGoal ? currentGoal.milestones : displayGoal.milestones).length - 1 && (
                           <div className="w-0.5 h-12 bg-stone-200 mt-2"></div>
                         )}
                       </div>
@@ -157,23 +316,58 @@ export default function Timeline() {
                             {getStatusIcon(milestone.status)}
                             <span className="ml-2 font-medium text-stone-800">Month {milestone.month}</span>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={`rounded-full px-3 ${
-                              milestone.status === "completed"
-                                ? "bg-sage-50 text-sage-700 border-sage-200"
-                                : milestone.status === "in-progress"
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-stone-50 text-stone-600 border-stone-200"
-                            }`}
-                          >
-                            {milestone.progress}% complete
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={`rounded-full px-3 ${
+                                milestone.status === "completed"
+                                  ? "bg-sage-50 text-sage-700 border-sage-200"
+                                  : milestone.status === "in-progress"
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : "bg-stone-50 text-stone-600 border-stone-200"
+                              }`}
+                            >
+                              {milestone.progress}% complete
+                            </Badge>
+                            {/* Milestone Action Button */}
+                            {currentGoal && (
+                              <div>
+                                {milestone.status === "completed" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => undoMilestoneComplete(currentGoal.id, index)}
+                                    className="rounded-full border-sage-200 text-sage-700 hover:bg-sage-50"
+                                  >
+                                    Undo
+                                  </Button>
+                                ) : milestone.status === "in-progress" ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => markMilestoneComplete(currentGoal.id, index)}
+                                    className="rounded-full bg-sage-500 hover:bg-sage-600 text-white"
+                                  >
+                                    <Check className="h-3 w-3 mr-1" />
+                                    Complete
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled
+                                    className="rounded-full border-stone-200 text-stone-400"
+                                  >
+                                    Pending
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <p className="text-stone-700 mb-2 font-light">{milestone.task}</p>
                         <div className="w-full bg-stone-100 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full ${getStatusColor(milestone.status)}`}
+                            className={`h-2 rounded-full ${getStatusColor(milestone.status)} transition-all duration-300`}
                             style={{ width: `${milestone.progress}%` }}
                           ></div>
                         </div>
@@ -248,14 +442,20 @@ export default function Timeline() {
                   <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                     <h4 className="font-medium text-stone-800 mb-2">This Month</h4>
                     <p className="text-stone-700 text-sm font-light">
-                      {currentGoal.milestones.find((m) => m.status === "in-progress")?.task || "No active tasks"}
+                      {(currentGoal ? currentGoal.milestones : displayGoal.milestones).find(
+                        (m) => m.status === "in-progress",
+                      )?.task || "No active tasks"}
                     </p>
                   </div>
                   <div className="p-4 bg-sage-50 rounded-xl border border-sage-100">
                     <h4 className="font-medium text-stone-800 mb-2">Completed</h4>
                     <p className="text-stone-700 text-sm font-light">
-                      {currentGoal.milestones.filter((m) => m.status === "completed").length} of{" "}
-                      {currentGoal.milestones.length} milestones
+                      {
+                        (currentGoal ? currentGoal.milestones : displayGoal.milestones).filter(
+                          (m) => m.status === "completed",
+                        ).length
+                      }{" "}
+                      of {(currentGoal ? currentGoal.milestones : displayGoal.milestones).length} milestones
                     </p>
                   </div>
                 </div>
@@ -268,11 +468,20 @@ export default function Timeline() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
+                  onClick={() => {
+                    if (currentGoal) {
+                      const inProgressMilestone = currentGoal.milestones.findIndex((m) => m.status === "in-progress")
+                      if (inProgressMilestone !== -1) {
+                        markMilestoneComplete(currentGoal.id, inProgressMilestone)
+                      }
+                    }
+                  }}
+                  disabled={!currentGoal || !currentGoal.milestones.some((m) => m.status === "in-progress")}
                   className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
                   variant="outline"
                 >
                   <CheckCircle className="h-4 w-4 mr-2 text-sage-500" />
-                  Mark Milestone Complete
+                  Mark Current Milestone Complete
                 </Button>
                 <Button
                   className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
@@ -299,24 +508,29 @@ export default function Timeline() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100">
-                    <div>
-                      <p className="font-medium text-stone-800 text-sm">Legal setup</p>
-                      <p className="text-xs text-stone-600 font-light">Business Goal</p>
+                  {currentGoal &&
+                    currentGoal.milestones
+                      .filter((m) => m.status !== "completed")
+                      .slice(0, 2)
+                      .map((milestone, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100"
+                        >
+                          <div>
+                            <p className="font-medium text-stone-800 text-sm">{milestone.task}</p>
+                            <p className="text-xs text-stone-600 font-light">{currentGoal.title}</p>
+                          </div>
+                          <Badge variant="outline" className="bg-white text-rose-600 border-rose-200 rounded-full">
+                            Month {milestone.month}
+                          </Badge>
+                        </div>
+                      ))}
+                  {(!currentGoal || currentGoal.milestones.filter((m) => m.status !== "completed").length === 0) && (
+                    <div className="text-center py-4">
+                      <p className="text-stone-500 text-sm font-light">All milestones completed! 🎉</p>
                     </div>
-                    <Badge variant="outline" className="bg-white text-rose-600 border-rose-200 rounded-full">
-                      5 days
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-100">
-                    <div>
-                      <p className="font-medium text-stone-800 text-sm">Fitness assessment</p>
-                      <p className="text-xs text-stone-600 font-light">Fitness Goal</p>
-                    </div>
-                    <Badge variant="outline" className="bg-white text-amber-600 border-amber-200 rounded-full">
-                      12 days
-                    </Badge>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

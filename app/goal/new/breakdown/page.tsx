@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle } from "lucide-react"
+import { ArrowLeft, CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle, Save } from "lucide-react"
 import Link from "next/link"
 import { useChat } from "ai/react"
+import { useRouter } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 
 interface Goal {
@@ -16,12 +17,34 @@ interface Goal {
   timeline: string
 }
 
+interface SavedGoal {
+  id: number
+  title: string
+  description: string
+  timeline: string
+  progress: number
+  status: string
+  dueDate: string
+  subGoals: string[]
+  completedSubGoals: number
+  createdAt: string
+  milestones: Array<{
+    month: number
+    task: string
+    status: string
+    progress: number
+  }>
+}
+
 export default function GoalBreakdown() {
+  const router = useRouter()
   const [goal, setGoal] = useState<Goal | null>(null)
   const [subGoals, setSubGoals] = useState<string[]>([])
   const [hasInitialized, setHasInitialized] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [questionCount, setQuestionCount] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+  const [hasSaved, setHasSaved] = useState(false)
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
@@ -50,6 +73,104 @@ export default function GoalBreakdown() {
       setError(`AI service error: ${error.message || "Unknown error occurred"}`)
     },
   })
+
+  // Save goal to localStorage and application state
+  const saveGoalToApp = async () => {
+    if (!goal || subGoals.length === 0) return
+
+    setIsSaving(true)
+    try {
+      // Get existing goals from localStorage
+      const existingGoalsJson = localStorage.getItem("userGoals")
+      const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
+
+      // Create timeline milestones from sub-goals
+      const milestones = subGoals.map((subGoal, index) => ({
+        month: index + 1,
+        task: subGoal,
+        status: index === 0 ? "in-progress" : "pending",
+        progress: index === 0 ? 10 : 0,
+      }))
+
+      // Calculate due date based on timeline
+      const dueDate = new Date()
+      if (goal.timeline.toLowerCase().includes("month")) {
+        const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
+        dueDate.setMonth(dueDate.getMonth() + months)
+      } else if (goal.timeline.toLowerCase().includes("year")) {
+        const years = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1")
+        dueDate.setFullYear(dueDate.getFullYear() + years)
+      } else {
+        // Default to 6 months if timeline is unclear
+        dueDate.setMonth(dueDate.getMonth() + 6)
+      }
+
+      // Create new goal object
+      const newGoal: SavedGoal = {
+        id: Date.now(), // Simple ID generation
+        title: goal.title,
+        description: goal.description || "",
+        timeline: goal.timeline || "",
+        progress: 5, // Starting progress
+        status: "in-progress",
+        dueDate: dueDate.toISOString().split("T")[0],
+        subGoals: subGoals,
+        completedSubGoals: 0,
+        createdAt: new Date().toISOString(),
+        milestones: milestones,
+      }
+
+      // Add to existing goals
+      const updatedGoals = [...existingGoals, newGoal]
+
+      // Save to localStorage
+      localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+      localStorage.setItem("currentGoalId", newGoal.id.toString())
+
+      // Clean up the temporary goal data
+      localStorage.removeItem("newGoal")
+
+      console.log("Goal saved successfully:", newGoal)
+      setHasSaved(true)
+
+      // Small delay to show success state
+      setTimeout(() => {
+        setIsSaving(false)
+      }, 1000)
+    } catch (error) {
+      console.error("Error saving goal:", error)
+      setError("Failed to save goal. Please try again.")
+      setIsSaving(false)
+    }
+  }
+
+  // Navigate to timeline with saved goal
+  const goToTimeline = () => {
+    if (hasSaved) {
+      router.push("/timeline")
+    } else {
+      // Save first, then navigate
+      saveGoalToApp().then(() => {
+        setTimeout(() => {
+          router.push("/timeline")
+        }, 1500)
+      })
+    }
+  }
+
+  // Navigate to dashboard with saved goal
+  const goToDashboard = () => {
+    if (hasSaved) {
+      router.push("/dashboard")
+    } else {
+      // Save first, then navigate
+      saveGoalToApp().then(() => {
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1500)
+      })
+    }
+  }
 
   // Initialize the conversation when goal is loaded
   useEffect(() => {
@@ -256,9 +377,9 @@ export default function GoalBreakdown() {
                 <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
                   <p>Debug: Messages count: {messages.length}</p>
                   <p>Questions asked: {questionCount}</p>
+                  <p>Sub-goals: {subGoals.length}</p>
+                  <p>Has saved: {hasSaved ? "Yes" : "No"}</p>
                   <p>Loading: {isLoading ? "Yes" : "No"}</p>
-                  <p>Has initialized: {hasInitialized ? "Yes" : "No"}</p>
-                  <p>Error: {error || "None"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -289,21 +410,53 @@ export default function GoalBreakdown() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Save Status */}
+                  {hasSaved && (
+                    <div className="mt-4 p-3 bg-sage-50 border border-sage-200 rounded-xl">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-sage-600 mr-2" />
+                        <span className="text-sage-800 text-sm font-medium">Goal saved successfully!</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-6 flex gap-3">
-                    <Link href="/timeline" className="flex-1">
-                      <Button className="w-full rounded-full bg-rose-400 hover:bg-rose-500 text-white">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Create Timeline
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard" className="flex-1">
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-full border-stone-200 text-stone-700 hover:bg-stone-50"
-                      >
-                        Save to Dashboard
-                      </Button>
-                    </Link>
+                    <Button
+                      onClick={goToTimeline}
+                      disabled={isSaving}
+                      className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Create Timeline
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={goToDashboard}
+                      disabled={isSaving}
+                      variant="outline"
+                      className="flex-1 rounded-full border-stone-200 text-stone-700 hover:bg-stone-50"
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-400 mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save to Dashboard
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -365,8 +518,14 @@ export default function GoalBreakdown() {
                     <span className="text-sm text-stone-700 font-light">Sub-goals generated</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="h-5 w-5 rounded-full mr-3 bg-stone-300"></div>
-                    <span className="text-sm text-stone-700 font-light">Timeline created</span>
+                    <div
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
+                        hasSaved ? "bg-sage-500" : "bg-stone-300"
+                      }`}
+                    >
+                      {hasSaved && <CheckCircle className="h-3 w-3 text-white" />}
+                    </div>
+                    <span className="text-sm text-stone-700 font-light">Goal saved</span>
                   </div>
                 </div>
               </CardContent>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -19,41 +19,32 @@ import {
   CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 
-export default function Dashboard() {
-  const [goals] = useState([
-    {
-      id: 1,
-      title: "Launch my own business",
-      progress: 35,
-      status: "in-progress",
-      dueDate: "2024-12-31",
-      subGoals: 8,
-      completedSubGoals: 3,
-    },
-    {
-      id: 2,
-      title: "Get in better shape",
-      progress: 60,
-      status: "on-track",
-      dueDate: "2024-08-15",
-      subGoals: 5,
-      completedSubGoals: 3,
-    },
-    {
-      id: 3,
-      title: "Learn Spanish fluently",
-      progress: 25,
-      status: "behind",
-      dueDate: "2025-06-01",
-      subGoals: 12,
-      completedSubGoals: 3,
-    },
-  ])
+interface SavedGoal {
+  id: number
+  title: string
+  description: string
+  timeline: string
+  progress: number
+  status: string
+  dueDate: string
+  subGoals: string[]
+  completedSubGoals: number
+  createdAt: string
+  milestones: Array<{
+    month: number
+    task: string
+    status: string
+    progress: number
+  }>
+}
 
+export default function Dashboard() {
+  const [goals, setGoals] = useState<SavedGoal[]>([])
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date()
     const dayOfWeek = today.getDay()
@@ -111,6 +102,177 @@ export default function Dashboard() {
     },
   ])
 
+  // Function to mark milestone as complete
+  const markMilestoneComplete = (goalId: number, milestoneIndex: number) => {
+    const updatedGoals = goals.map((goal) => {
+      if (goal.id === goalId) {
+        const updatedMilestones = [...goal.milestones]
+        const milestone = updatedMilestones[milestoneIndex]
+
+        if (milestone.status !== "completed") {
+          // Mark as completed
+          updatedMilestones[milestoneIndex] = {
+            ...milestone,
+            status: "completed",
+            progress: 100,
+          }
+
+          // Update next milestone to in-progress if it exists
+          if (milestoneIndex + 1 < updatedMilestones.length) {
+            const nextMilestone = updatedMilestones[milestoneIndex + 1]
+            if (nextMilestone.status === "pending") {
+              updatedMilestones[milestoneIndex + 1] = {
+                ...nextMilestone,
+                status: "in-progress",
+                progress: 10,
+              }
+            }
+          }
+
+          // Calculate new overall progress
+          const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
+          const newProgress = Math.round((completedMilestones / updatedMilestones.length) * 100)
+
+          // Update goal status based on progress
+          let newStatus = goal.status
+          if (newProgress === 100) {
+            newStatus = "completed"
+          } else if (newProgress > 50) {
+            newStatus = "on-track"
+          } else {
+            newStatus = "in-progress"
+          }
+
+          return {
+            ...goal,
+            milestones: updatedMilestones,
+            progress: newProgress,
+            completedSubGoals: completedMilestones,
+            status: newStatus,
+          }
+        }
+      }
+      return goal
+    })
+
+    setGoals(updatedGoals)
+    localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+  }
+
+  // Load goals from localStorage on component mount
+  useEffect(() => {
+    const loadGoals = () => {
+      try {
+        const storedGoals = localStorage.getItem("userGoals")
+        if (storedGoals) {
+          const parsedGoals: SavedGoal[] = JSON.parse(storedGoals)
+          console.log("Loaded goals from localStorage:", parsedGoals)
+          setGoals(parsedGoals)
+        } else {
+          console.log("No goals found in localStorage")
+          // Set empty array if no goals exist
+          setGoals([])
+        }
+      } catch (error) {
+        console.error("Error loading goals from localStorage:", error)
+        setGoals([])
+      }
+    }
+
+    loadGoals()
+
+    // Listen for storage changes (in case goals are updated in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "userGoals") {
+        loadGoals()
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
+  }, [])
+
+  // Fallback sample goals for demo when no real goals exist
+  const sampleGoals: SavedGoal[] = [
+    {
+      id: 999,
+      title: "Launch my own business",
+      description: "Start a tech company focused on productivity tools",
+      timeline: "12 months",
+      progress: 35,
+      status: "in-progress",
+      dueDate: "2024-12-31",
+      subGoals: [
+        "Market research & validation",
+        "Business plan development",
+        "Legal setup & registration",
+        "Brand identity & website",
+        "Product development",
+        "Initial funding",
+        "Customer acquisition",
+        "Team hiring",
+      ],
+      completedSubGoals: 3,
+      createdAt: "2024-01-01T00:00:00.000Z",
+      milestones: [
+        { month: 1, task: "Market research & validation", status: "completed", progress: 100 },
+        { month: 2, task: "Business plan development", status: "completed", progress: 100 },
+        { month: 3, task: "Legal setup & registration", status: "in-progress", progress: 60 },
+      ],
+    },
+    {
+      id: 998,
+      title: "Get in better shape",
+      description: "Improve overall fitness and health",
+      timeline: "6 months",
+      progress: 60,
+      status: "on-track",
+      dueDate: "2024-08-15",
+      subGoals: [
+        "Establish workout routine",
+        "Nutrition plan implementation",
+        "First fitness assessment",
+        "Increase workout intensity",
+        "Mid-point fitness test",
+      ],
+      completedSubGoals: 3,
+      createdAt: "2024-01-01T00:00:00.000Z",
+      milestones: [
+        { month: 1, task: "Establish workout routine", status: "completed", progress: 100 },
+        { month: 2, task: "Nutrition plan implementation", status: "completed", progress: 100 },
+        { month: 3, task: "First fitness assessment", status: "completed", progress: 100 },
+      ],
+    },
+    {
+      id: 997,
+      title: "Learn Spanish fluently",
+      description: "Achieve conversational fluency in Spanish",
+      timeline: "18 months",
+      progress: 25,
+      status: "behind",
+      dueDate: "2025-06-01",
+      subGoals: [
+        "Complete beginner course",
+        "Daily practice routine",
+        "Conversation partner",
+        "Intermediate course",
+        "Travel to Spanish-speaking country",
+        "Advanced course",
+        "Fluency test",
+      ],
+      completedSubGoals: 2,
+      createdAt: "2024-01-01T00:00:00.000Z",
+      milestones: [
+        { month: 1, task: "Complete beginner course", status: "completed", progress: 100 },
+        { month: 2, task: "Daily practice routine", status: "completed", progress: 100 },
+        { month: 3, task: "Conversation partner", status: "in-progress", progress: 40 },
+      ],
+    },
+  ]
+
+  // Use real goals if they exist, otherwise show sample goals
+  const displayGoals = goals.length > 0 ? goals : sampleGoals
+
   const getWeekDays = (startDate: Date) => {
     const days = []
     for (let i = 0; i < 7; i++) {
@@ -163,6 +325,8 @@ export default function Dashboard() {
         return "bg-rose-400"
       case "in-progress":
         return "bg-amber-400"
+      case "completed":
+        return "bg-sage-500"
       default:
         return "bg-stone-400"
     }
@@ -176,10 +340,24 @@ export default function Dashboard() {
         return "Needs Attention"
       case "in-progress":
         return "In Progress"
+      case "completed":
+        return "Completed"
       default:
         return "Unknown"
     }
   }
+
+  // Calculate stats from actual goals
+  const totalCompletedSteps = displayGoals.reduce((acc, goal) => acc + goal.completedSubGoals, 0)
+  const averageProgress =
+    displayGoals.length > 0
+      ? Math.round(displayGoals.reduce((acc, goal) => acc + goal.progress, 0) / displayGoals.length)
+      : 0
+  const dueThisMonth = displayGoals.filter((goal) => {
+    const dueDate = new Date(goal.dueDate)
+    const now = new Date()
+    return dueDate.getMonth() === now.getMonth() && dueDate.getFullYear() === now.getFullYear()
+  }).length
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
@@ -192,6 +370,14 @@ export default function Dashboard() {
           <p className="text-stone-600 font-light">
             Track your goals, visualize progress, and stay motivated on your path.
           </p>
+          {goals.length === 0 && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-amber-800 text-sm">
+                <strong>Demo Mode:</strong> You're seeing sample goals. Create your first goal to see your real progress
+                here!
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Quick Stats */}
@@ -204,7 +390,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-stone-600">Active Goals</p>
-                  <p className="text-2xl font-serif text-stone-800">{goals.length}</p>
+                  <p className="text-2xl font-serif text-stone-800">{displayGoals.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -218,9 +404,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-stone-600">Completed Steps</p>
-                  <p className="text-2xl font-serif text-stone-800">
-                    {goals.reduce((acc, goal) => acc + goal.completedSubGoals, 0)}
-                  </p>
+                  <p className="text-2xl font-serif text-stone-800">{totalCompletedSteps}</p>
                 </div>
               </div>
             </CardContent>
@@ -234,9 +418,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-stone-600">Avg Progress</p>
-                  <p className="text-2xl font-serif text-stone-800">
-                    {Math.round(goals.reduce((acc, goal) => acc + goal.progress, 0) / goals.length)}%
-                  </p>
+                  <p className="text-2xl font-serif text-stone-800">{averageProgress}%</p>
                 </div>
               </div>
             </CardContent>
@@ -250,7 +432,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-stone-600">Due This Month</p>
-                  <p className="text-2xl font-serif text-stone-800">1</p>
+                  <p className="text-2xl font-serif text-stone-800">{dueThisMonth}</p>
                 </div>
               </div>
             </CardContent>
@@ -277,69 +459,109 @@ export default function Dashboard() {
                 </Link>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {goals.map((goal) => (
-                    <div
-                      key={goal.id}
-                      className="border border-stone-200 rounded-2xl p-6 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-serif text-xl text-stone-800 mb-1">{goal.title}</h3>
-                          <p className="text-sm text-stone-600 font-light">
-                            {goal.completedSubGoals} of {goal.subGoals} steps completed
-                          </p>
-                        </div>
-                        <Badge className={`${getStatusColor(goal.status)} text-white font-light rounded-full px-3`}>
-                          {getStatusText(goal.status)}
-                        </Badge>
-                      </div>
+                {displayGoals.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Target className="h-16 w-16 text-stone-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-serif text-stone-800 mb-2">No goals yet</h3>
+                    <p className="text-stone-600 font-light mb-6">
+                      Create your first goal to start tracking your progress and building momentum.
+                    </p>
+                    <Link href="/create-goal">
+                      <Button className="bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Your First Goal
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {displayGoals.map((goal) => {
+                      const currentMilestone = goal.milestones.find((m) => m.status === "in-progress")
+                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status === "in-progress")
 
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-stone-600 font-light">Progress</span>
-                          <span className="text-stone-800">{goal.progress}%</span>
-                        </div>
-                        <Progress
-                          value={goal.progress}
-                          className="h-2 bg-stone-100"
-                          style={
-                            {
-                              "--progress-background":
-                                goal.status === "on-track"
-                                  ? "#8EB69B"
-                                  : goal.status === "behind"
-                                    ? "#F87171"
-                                    : "#FBBF24",
-                            } as React.CSSProperties
-                          }
-                        />
-                      </div>
+                      return (
+                        <div
+                          key={goal.id}
+                          className="border border-stone-200 rounded-2xl p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h3 className="font-serif text-xl text-stone-800 mb-1">{goal.title}</h3>
+                              <p className="text-sm text-stone-600 font-light">
+                                {goal.completedSubGoals} of {goal.subGoals.length} steps completed
+                              </p>
+                              {goal.description && (
+                                <p className="text-sm text-stone-500 font-light mt-1">{goal.description}</p>
+                              )}
+                              {currentMilestone && (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <span className="text-xs text-amber-600 font-medium">Current:</span>
+                                  <span className="text-xs text-stone-700">{currentMilestone.task}</span>
+                                  {goals.length > 0 && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => markMilestoneComplete(goal.id, currentMilestoneIndex)}
+                                      className="ml-2 h-6 px-2 text-xs rounded-full bg-sage-500 hover:bg-sage-600 text-white"
+                                    >
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Complete
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <Badge className={`${getStatusColor(goal.status)} text-white font-light rounded-full px-3`}>
+                              {getStatusText(goal.status)}
+                            </Badge>
+                          </div>
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-stone-500 font-light">
-                          Due: {new Date(goal.dueDate).toLocaleDateString()}
-                        </span>
-                        <div className="space-x-2">
-                          <Link href={`/goal/${goal.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="rounded-full border-stone-200 text-stone-700"
-                            >
-                              View Details
-                            </Button>
-                          </Link>
-                          <Link href={`/goal/${goal.id}/breakdown`}>
-                            <Button size="sm" className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">
-                              AI Breakdown
-                            </Button>
-                          </Link>
+                          <div className="mb-4">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-stone-600 font-light">Progress</span>
+                              <span className="text-stone-800">{goal.progress}%</span>
+                            </div>
+                            <Progress
+                              value={goal.progress}
+                              className="h-2 bg-stone-100"
+                              style={
+                                {
+                                  "--progress-background":
+                                    goal.status === "on-track" || goal.status === "completed"
+                                      ? "#8EB69B"
+                                      : goal.status === "behind"
+                                        ? "#F87171"
+                                        : "#FBBF24",
+                                } as React.CSSProperties
+                              }
+                            />
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-stone-500 font-light">
+                              Due: {new Date(goal.dueDate).toLocaleDateString()}
+                            </span>
+                            <div className="space-x-2">
+                              <Link href={`/goal/${goal.id}`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full border-stone-200 text-stone-700"
+                                >
+                                  View Details
+                                </Button>
+                              </Link>
+                              <Link href={`/timeline?goalId=${goal.id}`}>
+                                <Button size="sm" className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">
+                                  View Timeline
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
