@@ -22,7 +22,7 @@ interface SavedGoal {
   completedSubGoals: number
   createdAt: string
   milestones: Array<{
-    month: number
+    week: number
     task: string
     status: string
     progress: number
@@ -49,6 +49,12 @@ export default function Timeline() {
         setSelectedGoalId(goals[goals.length - 1].id)
       }
     }
+  }, [])
+
+  // Add this useEffect after the existing useEffect that loads goals from localStorage
+  useEffect(() => {
+    // Scroll to top when page loads, especially when coming from goal creation
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }, [])
 
   // Function to mark milestone as complete
@@ -161,39 +167,99 @@ export default function Timeline() {
       title: "Launch my own business",
       timeline: "12 months",
       milestones: [
-        { month: 1, task: "Market research & validation", status: "completed", progress: 100 },
-        { month: 2, task: "Business plan development", status: "completed", progress: 100 },
-        { month: 3, task: "Legal setup & registration", status: "in-progress", progress: 60 },
-        { month: 4, task: "Brand identity & website", status: "pending", progress: 0 },
-        { month: 5, task: "Product/service development", status: "pending", progress: 0 },
-        { month: 6, task: "Initial funding secured", status: "pending", progress: 0 },
-        { month: 8, task: "First customer acquisition", status: "pending", progress: 0 },
-        { month: 10, task: "Team hiring", status: "pending", progress: 0 },
-        { month: 12, task: "Official launch", status: "pending", progress: 0 },
+        { week: 1, task: "Market research & validation", status: "completed", progress: 100 },
+        { week: 2, task: "Competitor analysis", status: "completed", progress: 100 },
+        { week: 3, task: "Business plan outline", status: "in-progress", progress: 60 },
+        { week: 4, task: "Financial projections", status: "pending", progress: 0 },
+        { week: 5, task: "Legal structure setup", status: "pending", progress: 0 },
+        { week: 6, task: "Brand identity design", status: "pending", progress: 0 },
+        { week: 7, task: "Website development", status: "pending", progress: 0 },
+        { week: 8, task: "Initial product development", status: "pending", progress: 0 },
       ],
     },
     fitness: {
       title: "Get in better shape",
-      timeline: "6 months",
+      timeline: "2 months",
       milestones: [
-        { month: 1, task: "Establish workout routine", status: "completed", progress: 100 },
-        { month: 2, task: "Nutrition plan implementation", status: "completed", progress: 100 },
-        { month: 3, task: "First fitness assessment", status: "completed", progress: 100 },
-        { month: 4, task: "Increase workout intensity", status: "in-progress", progress: 75 },
-        { month: 5, task: "Mid-point fitness test", status: "pending", progress: 0 },
-        { month: 6, task: "Final fitness goals achieved", status: "pending", progress: 0 },
+        { week: 1, task: "Establish workout routine", status: "completed", progress: 100 },
+        { week: 2, task: "Nutrition plan implementation", status: "completed", progress: 100 },
+        { week: 3, task: "First fitness assessment", status: "completed", progress: 100 },
+        { week: 4, task: "Increase workout intensity", status: "in-progress", progress: 75 },
+        { week: 5, task: "Add cardio sessions", status: "pending", progress: 0 },
+        { week: 6, task: "Mid-point fitness test", status: "pending", progress: 0 },
+        { week: 7, task: "Adjust routine based on progress", status: "pending", progress: 0 },
+        { week: 8, task: "Final fitness goals achieved", status: "pending", progress: 0 },
       ],
     },
   }
 
-  const progressData = [
-    { month: "Jan", business: 20, fitness: 30 },
-    { month: "Feb", business: 35, fitness: 45 },
-    { month: "Mar", business: 45, fitness: 60 },
-    { month: "Apr", business: 50, fitness: 70 },
-    { month: "May", business: 55, fitness: 75 },
-    { month: "Jun", business: 60, fitness: 85 },
-  ]
+  // Generate progress data from user goals
+  const generateProgressData = () => {
+    if (userGoals.length === 0) {
+      return [
+        { week: "Week 1", progress: 0 },
+        { week: "Week 2", progress: 0 },
+        { week: "Week 3", progress: 0 },
+        { week: "Week 4", progress: 0 },
+        { week: "Week 5", progress: 0 },
+        { week: "Week 6", progress: 0 },
+        { week: "Week 7", progress: 0 },
+        { week: "Week 8", progress: 0 },
+      ]
+    }
+
+    // Get all unique weeks from all goals
+    const allWeeks = new Set<number>()
+    userGoals.forEach((goal) => {
+      goal.milestones.forEach((milestone) => {
+        allWeeks.add(milestone.week)
+      })
+    })
+
+    // Sort weeks
+    const sortedWeeks = Array.from(allWeeks).sort((a, b) => a - b)
+
+    // Create data points for each week
+    return sortedWeeks.map((week) => {
+      const dataPoint: Record<string, any> = { week: `Week ${week}` }
+
+      // Add progress for each goal at this week
+      userGoals.forEach((goal) => {
+        // Find the most recent milestone for this week
+        const milestonesUpToWeek = goal.milestones.filter((m) => m.week <= week).sort((a, b) => b.week - a.week)
+
+        if (milestonesUpToWeek.length > 0) {
+          // Use the most recent milestone's progress
+          const latestMilestone = milestonesUpToWeek[0]
+          const progressKey = goal.title.toLowerCase().replace(/\s+/g, "_")
+          dataPoint[progressKey] =
+            latestMilestone.status === "completed"
+              ? 100
+              : latestMilestone.status === "in-progress"
+                ? latestMilestone.progress
+                : 0
+        }
+      })
+
+      return dataPoint
+    })
+  }
+
+  // Get the maximum month from the selected goal's timeline
+  const getMaxMonthFromTimeline = () => {
+    if (!currentGoal) return 2 // Default to 2 months if no goal selected
+
+    // Try to extract months from timeline string
+    const monthsMatch = currentGoal.timeline.match(/(\d+)\s*month/i)
+    if (monthsMatch) {
+      return Number.parseInt(monthsMatch[1], 10)
+    }
+
+    // Fallback: get the highest month from milestones
+    return Math.max(...currentGoal.milestones.map((m) => m.week))
+  }
+
+  const progressData = generateProgressData()
 
   // Get current goal
   const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
@@ -314,7 +380,30 @@ export default function Timeline() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center">
                             {getStatusIcon(milestone.status)}
-                            <span className="ml-2 font-medium text-stone-800">Month {milestone.month}</span>
+                            <span className="ml-2 font-medium text-stone-800">Week {milestone.week}</span>
+
+                            {/* Add inline completion button */}
+                            {currentGoal && milestone.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => markMilestoneComplete(currentGoal.id, index)}
+                                className="ml-2 h-7 px-2 text-xs hover:bg-sage-50 hover:text-sage-700"
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Mark Complete
+                              </Button>
+                            )}
+                            {currentGoal && milestone.status === "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => undoMilestoneComplete(currentGoal.id, index)}
+                                className="ml-2 h-7 px-2 text-xs hover:bg-rose-50 hover:text-rose-700"
+                              >
+                                Undo
+                              </Button>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
@@ -329,42 +418,41 @@ export default function Timeline() {
                             >
                               {milestone.progress}% complete
                             </Badge>
-                            {/* Milestone Action Button */}
-                            {currentGoal && (
-                              <div>
-                                {milestone.status === "completed" ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => undoMilestoneComplete(currentGoal.id, index)}
-                                    className="rounded-full border-sage-200 text-sage-700 hover:bg-sage-50"
-                                  >
-                                    Undo
-                                  </Button>
-                                ) : milestone.status === "in-progress" ? (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => markMilestoneComplete(currentGoal.id, index)}
-                                    className="rounded-full bg-sage-500 hover:bg-sage-600 text-white"
-                                  >
-                                    <Check className="h-3 w-3 mr-1" />
-                                    Complete
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled
-                                    className="rounded-full border-stone-200 text-stone-400"
-                                  >
-                                    Pending
-                                  </Button>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </div>
-                        <p className="text-stone-700 mb-2 font-light">{milestone.task}</p>
+                        <div className="flex items-center mb-2">
+                          <p className="text-stone-700 font-light flex-1">{milestone.task}</p>
+                          {currentGoal && milestone.status === "in-progress" && (
+                            <Button
+                              size="sm"
+                              onClick={() => markMilestoneComplete(currentGoal.id, index)}
+                              className="ml-2 h-7 px-3 text-xs rounded-full bg-sage-500 hover:bg-sage-600 text-white"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Complete
+                            </Button>
+                          )}
+                          {currentGoal && milestone.status === "completed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => undoMilestoneComplete(currentGoal.id, index)}
+                              className="ml-2 h-7 px-3 text-xs rounded-full border-sage-200 text-sage-700 hover:bg-sage-50"
+                            >
+                              Undo
+                            </Button>
+                          )}
+                          {currentGoal && milestone.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              className="ml-2 h-7 px-3 text-xs rounded-full border-stone-200 text-stone-400"
+                            >
+                              Pending
+                            </Button>
+                          )}
+                        </div>
                         <div className="w-full bg-stone-100 rounded-full h-2">
                           <div
                             className={`h-2 rounded-full ${getStatusColor(milestone.status)} transition-all duration-300`}
@@ -388,39 +476,57 @@ export default function Timeline() {
               </CardHeader>
               <CardContent>
                 <ChartContainer
-                  config={{
-                    business: {
-                      label: "Business Goal",
-                      color: "#F87171",
-                    },
-                    fitness: {
-                      label: "Fitness Goal",
-                      color: "#8EB69B",
-                    },
-                  }}
+                  config={
+                    userGoals.length > 0
+                      ? Object.fromEntries(
+                          userGoals.map((goal) => [
+                            goal.title.toLowerCase().replace(/\s+/g, "_"),
+                            {
+                              label: goal.title,
+                              color: goal.id % 2 === 0 ? "#F87171" : "#8EB69B",
+                            },
+                          ]),
+                        )
+                      : {
+                          progress: {
+                            label: "Goal Progress",
+                            color: "#F87171",
+                          },
+                        }
+                  }
                   className="h-[300px]"
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={progressData}>
-                      <XAxis dataKey="month" />
+                      <XAxis dataKey="week" />
                       <YAxis />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Area
-                        type="monotone"
-                        dataKey="business"
-                        stackId="1"
-                        stroke="#F87171"
-                        fill="#F87171"
-                        fillOpacity={0.6}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="fitness"
-                        stackId="1"
-                        stroke="#8EB69B"
-                        fill="#8EB69B"
-                        fillOpacity={0.6}
-                      />
+                      {userGoals.length > 0 ? (
+                        userGoals.map((goal, index) => {
+                          const dataKey = goal.title.toLowerCase().replace(/\s+/g, "_")
+                          const color = index % 2 === 0 ? "#F87171" : "#8EB69B"
+                          return (
+                            <Area
+                              key={dataKey}
+                              type="monotone"
+                              dataKey={dataKey}
+                              stackId="1"
+                              stroke={color}
+                              fill={color}
+                              fillOpacity={0.6}
+                            />
+                          )
+                        })
+                      ) : (
+                        <Area
+                          type="monotone"
+                          dataKey="progress"
+                          stackId="1"
+                          stroke="#F87171"
+                          fill="#F87171"
+                          fillOpacity={0.6}
+                        />
+                      )}
                     </AreaChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -522,7 +628,7 @@ export default function Timeline() {
                             <p className="text-xs text-stone-600 font-light">{currentGoal.title}</p>
                           </div>
                           <Badge variant="outline" className="bg-white text-rose-600 border-rose-200 rounded-full">
-                            Month {milestone.month}
+                            Week {milestone.week}
                           </Badge>
                         </div>
                       ))}

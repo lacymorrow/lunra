@@ -119,7 +119,7 @@ export default function LandingPage() {
                     size="lg"
                     className="text-lg px-8 py-6 bg-rose-400 hover:bg-rose-500 text-white rounded-full font-light"
                   >
-                    Start Your Journey
+                    Begin Your Journey
                     <ArrowRight className="ml-3 h-5 w-5" />
                   </Button>
                 </Link>
@@ -447,7 +447,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white text-white hover:bg-white hover:text-stone-700 text-lg px-10 py-6 rounded-full font-light"
+              className="border-white text-white bg-white/20 hover:bg-white hover:text-stone-700 text-lg px-10 py-6 rounded-full font-light"
             >
               Explore the Experience
             </Button>

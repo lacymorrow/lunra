@@ -29,7 +29,7 @@ interface SavedGoal {
   completedSubGoals: number
   createdAt: string
   milestones: Array<{
-    month: number
+    week: number
     task: string
     status: string
     progress: number
@@ -85,12 +85,40 @@ export default function GoalBreakdown() {
       const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
 
       // Create timeline milestones from sub-goals
-      const milestones = subGoals.map((subGoal, index) => ({
-        month: index + 1,
-        task: subGoal,
-        status: index === 0 ? "in-progress" : "pending",
-        progress: index === 0 ? 10 : 0,
-      }))
+      const milestones = subGoals.map((subGoal, index) => {
+        // Extract week from the sub-goal if it's in the format "[Week X] Task description"
+        let week = index + 1
+        let task = subGoal
+
+        const weekMatch = subGoal.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
+        if (weekMatch) {
+          week = Number.parseInt(weekMatch[1], 10)
+          task = weekMatch[2].trim()
+        }
+
+        // Parse timeline to get max weeks
+        let maxWeeks = 8 // Default to 8 weeks (2 months)
+        if (goal.timeline) {
+          const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
+          const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
+
+          if (monthsMatch) {
+            maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4 // Convert months to weeks
+          } else if (weeksMatch) {
+            maxWeeks = Number.parseInt(weeksMatch[1], 10)
+          }
+        }
+
+        // Ensure week doesn't exceed the timeline
+        week = Math.min(week, maxWeeks)
+
+        return {
+          week: week,
+          task: task,
+          status: index === 0 ? "in-progress" : "pending",
+          progress: index === 0 ? 10 : 0,
+        }
+      })
 
       // Calculate due date based on timeline
       const dueDate = new Date()

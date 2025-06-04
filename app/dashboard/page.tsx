@@ -476,8 +476,8 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-6">
                     {displayGoals.map((goal) => {
-                      const currentMilestone = goal.milestones.find((m) => m.status === "in-progress")
-                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status === "in-progress")
+                      const currentMilestone = goal.milestones.find((m) => m.status !== "completed")
+                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status !== "completed")
 
                       return (
                         <div
@@ -598,7 +598,7 @@ export default function Dashboard() {
                     variant="outline"
                   >
                     <CalendarIcon className="h-4 w-4 mr-2 text-sage-500" />
-                    Goal Calendar
+                    Calendar
                   </Button>
                 </Link>
                 <Link href="/check-in" className="block">
