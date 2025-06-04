@@ -8,19 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  ArrowLeft,
-  CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Clock,
-  CheckCircle,
-  Sparkles,
-  MapPin,
-} from "lucide-react"
-import Link from "next/link"
+import { CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock, CheckCircle, Sparkles, MapPin } from "lucide-react"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 interface CalendarEvent {
   id: string
@@ -317,19 +307,10 @@ export default function Calendar() {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Life Calendar</h1>
-          <p className="text-stone-600 font-light">
-            Organize your goals, appointments, and life events with beautiful color coding.
-          </p>
-        </div>
+        <DashboardHeader
+          title="Life Calendar"
+          description="Organize your goals, appointments, and life events with beautiful color coding."
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Calendar View */}

@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle, Save } from "lucide-react"
+import { CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle, Save } from "lucide-react"
 import Link from "next/link"
 import { useChat } from "ai/react"
 import { useRouter } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardHeader } from "@/components/dashboard-header"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface Goal {
   title: string
@@ -374,19 +376,12 @@ export default function GoalBreakdown() {
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/create-goal"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Goal Creation
-          </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">AI Goal Breakdown</h1>
-          <p className="text-stone-600 font-light">
-            Let's break down your goal into specific, gentle steps that honor your journey.
-          </p>
-        </div>
+        <DashboardHeader
+          title="AI Goal Breakdown"
+          description="Let's break down your goal into specific, gentle steps that honor your journey."
+          backHref="/create-goal"
+          backText="Back to Goal Creation"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AI Chat Interface */}
@@ -513,13 +508,22 @@ export default function GoalBreakdown() {
                 </form>
 
                 {/* Debug info - remove in production */}
-                <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
-                  <p>Debug: Messages count: {messages.length}</p>
-                  <p>Questions asked: {questionCount}</p>
-                  <p>Sub-goals: {subGoals.length}</p>
-                  <p>Has saved: {hasSaved ? "Yes" : "No"}</p>
-                  <p>Loading: {isLoading ? "Yes" : "No"}</p>
-                </div>
+                <Collapsible defaultOpen={false}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="mt-4 text-xs text-gray-600 hover:text-gray-800">
+                      Show Debug Info
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                      <p>Debug: Messages count: {messages.length}</p>
+                      <p>Questions asked: {questionCount}</p>
+                      <p>Sub-goals: {subGoals.length}</p>
+                      <p>Has saved: {hasSaved ? "Yes" : "No"}</p>
+                      <p>Loading: {isLoading ? "Yes" : "No"}</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
 

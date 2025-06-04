@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Heart, Menu, X } from "lucide-react"
+import { Moon, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
@@ -21,7 +21,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
           <div className="flex items-center space-x-3">
             <Link href="/landing" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center">
-                <Heart className="h-5 w-5 text-white" />
+                <Moon className="h-5 w-5 text-white" />
               </div>
               <span className="text-2xl font-serif text-stone-800">lunra</span>
             </Link>

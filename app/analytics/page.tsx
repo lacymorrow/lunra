@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, TrendingUp, Target, Calendar, Award, Heart, Sparkles } from "lucide-react"
+import { TrendingUp, Target, Calendar, Award, Heart, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
@@ -23,6 +23,7 @@ import {
 import { SiteHeader } from "@/components/site-header"
 import { useEffect, useState } from "react"
 import type { SavedGoal } from "@/types"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function Analytics() {
   // Load goals from localStorage and generate real data
@@ -191,17 +192,10 @@ export default function Analytics() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Progress Analytics</h1>
-          <p className="text-stone-600 font-light">
-            Deep insights into your goal achievement patterns and progress trends.
-          </p>
+          <DashboardHeader
+            title="Progress Analytics"
+            description="Deep insights into your goal achievement patterns and progress trends."
+          />
         </div>
 
         {/* Key Metrics */}

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Heart, Users, MessageCircle } from "lucide-react"
+import { Moon, Users, MessageCircle } from "lucide-react"
 
 export function SiteFooter() {
   return (
@@ -9,7 +9,7 @@ export function SiteFooter() {
           <div>
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-400 rounded-full flex items-center justify-center">
-                <Heart className="h-5 w-5 text-white" />
+                <Moon className="h-5 w-5 text-white" />
               </div>
               <span className="text-2xl font-serif">lunra</span>
             </div>
@@ -24,7 +24,7 @@ export function SiteFooter() {
                 <MessageCircle className="h-5 w-5" />
               </div>
               <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center hover:bg-stone-600 transition-colors">
-                <Heart className="h-5 w-5" />
+                <Moon className="h-5 w-5" />
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="border-t border-stone-700 mt-16 pt-10 text-center text-stone-400 font-light">
-          <p>&copy; 2024 lunra. crafted with care for dreamers everywhere.</p>
+          <p>&copy; 2025 lunra. crafted with care for dreamers everywhere.</p>
         </div>
       </div>
     </footer>

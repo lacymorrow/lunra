@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Calendar, Clock, Target, CheckCircle, Heart, Check } from "lucide-react"
+import { Calendar, Clock, Target, CheckCircle, Heart, Check } from "lucide-react"
 import Link from "next/link"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { XAxis, YAxis, ResponsiveContainer, Area, AreaChart } from "recharts"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 interface SavedGoal {
   id: number
@@ -338,19 +339,10 @@ export default function Timeline() {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Your Journey Timeline</h1>
-          <p className="text-stone-600 font-light">
-            Visualize your path and celebrate milestones across all your goals.
-          </p>
-        </div>
+        <DashboardHeader
+          title="Your Journey Timeline"
+          description="Visualize your path and celebrate milestones across all your goals."
+        />
 
         {/* Goal Selector */}
         {userGoals.length > 0 && (

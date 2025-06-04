@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardPageHeader } from "@/components/dashboard-page-header"
 
 interface SavedGoal {
   id: number
@@ -400,20 +401,19 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Your Journey Dashboard</h1>
-          <p className="text-stone-600 font-light">
-            Track your goals, visualize progress, and stay motivated on your path.
-          </p>
-          {goals.length === 0 && (
-            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-              <p className="text-amber-800 text-sm">
-                <strong>Demo Mode:</strong> You're seeing sample goals. Create your first goal to see your real progress
-                here!
-              </p>
-            </div>
-          )}
-        </div>
+        <DashboardPageHeader
+          title="Your Journey Dashboard"
+          description="Track your goals, visualize progress, and stay motivated on your path."
+        />
+
+        {goals.length === 0 && (
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <p className="text-amber-800 text-sm">
+              <strong>Demo Mode:</strong> You're seeing sample goals. Create your first goal to see your real progress
+              here!
+            </p>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">

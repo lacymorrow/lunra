@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Sparkles, Heart, Target, Calendar, Brain } from "lucide-react"
-import Link from "next/link"
+import { Sparkles, Heart, Target, Calendar, Brain } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function CreateGoal() {
   const router = useRouter()
@@ -44,19 +44,10 @@ export default function CreateGoal() {
 
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Create a New Goal</h1>
-          <p className="text-stone-600 font-light">
-            Start by describing your dream, and our AI will help you break it down into gentle, achievable steps.
-          </p>
-        </div>
+        <DashboardHeader
+          title="Create a New Goal"
+          description="Start by describing your dream, and our AI will help you break it down into gentle, achievable steps."
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Goal Creation Form */}

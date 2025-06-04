@@ -11,6 +11,7 @@ import { ArrowLeft, TrendingUp, CheckCircle, Heart, Sparkles } from "lucide-reac
 import Link from "next/link"
 import { useChat } from "ai/react"
 import { SiteHeader } from "@/components/site-header"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function CheckIn() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -106,10 +107,10 @@ export default function CheckIn() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Link>
-            <h1 className="text-4xl font-serif text-stone-800 mb-3">Your Gentle Guidance</h1>
-            <p className="text-stone-600 font-light">
-              Based on your check-in, here's personalized wisdom for the week ahead.
-            </p>
+            <DashboardHeader
+              title="Your Gentle Guidance"
+              description="Based on your check-in, here's personalized wisdom for the week ahead."
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -296,10 +297,10 @@ export default function CheckIn() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Weekly Reflection</h1>
-          <p className="text-stone-600 font-light">
-            Take a moment to reflect on your progress and receive gentle guidance for the week ahead.
-          </p>
+          <DashboardHeader
+            title="Weekly Reflection"
+            description="Take a moment to reflect on your progress and receive gentle guidance for the week ahead."
+          />
         </div>
 
         {/* Progress Indicator */}
