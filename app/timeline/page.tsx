@@ -32,6 +32,7 @@ interface SavedGoal {
 export default function Timeline() {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
   const [userGoals, setUserGoals] = useState<SavedGoal[]>([])
+  const [relatedGoals, setRelatedGoals] = useState<SavedGoal[]>([])
 
   // Load goals from localStorage
   useEffect(() => {
@@ -50,6 +51,23 @@ export default function Timeline() {
       }
     }
   }, [])
+
+  // Add after the existing goal loading useEffect:
+  useEffect(() => {
+    if (selectedGoalId && userGoals.length > 0) {
+      const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
+      if (currentGoal) {
+        // Find related goals (goals with similar descriptions or created around the same time)
+        const related = userGoals.filter(
+          (goal) =>
+            goal.id !== selectedGoalId &&
+            (goal.description.includes("Part of:") ||
+              Math.abs(new Date(goal.createdAt).getTime() - new Date(currentGoal.createdAt).getTime()) < 300000), // Within 5 minutes
+        )
+        setRelatedGoals(related)
+      }
+    }
+  }, [selectedGoalId, userGoals])
 
   // Scroll to top when page loads, especially when coming from goal creation
   useEffect(() => {
@@ -621,6 +639,36 @@ export default function Timeline() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Add this card in the sidebar after the "Upcoming Deadlines" card */}
+            {relatedGoals.length > 0 && (
+              <Card className="border-0 rounded-3xl shadow-md">
+                <CardHeader>
+                  <CardTitle className="text-xl font-serif text-stone-800">Related Timelines</CardTitle>
+                  <CardDescription className="text-stone-600 font-light">Part of the same goal project</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {relatedGoals.map((goal) => (
+                      <Button
+                        key={goal.id}
+                        variant="outline"
+                        onClick={() => setSelectedGoalId(goal.id)}
+                        className="w-full justify-start rounded-xl border-stone-200 text-stone-700 hover:bg-stone-50 p-4 h-auto"
+                      >
+                        <div className="text-left">
+                          <p className="font-medium text-sm">{goal.title}</p>
+                          <p className="text-xs text-stone-500 font-light">
+                            {goal.progress}% complete • {goal.milestones.filter((m) => m.status === "completed").length}
+                            /{goal.milestones.length}
+                          </p>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

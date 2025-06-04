@@ -359,6 +359,41 @@ export default function Dashboard() {
     return dueDate.getMonth() === now.getMonth() && dueDate.getFullYear() === now.getFullYear()
   }).length
 
+  // Add this function before the return statement:
+  const groupRelatedGoals = (goals: SavedGoal[]) => {
+    const grouped: { [key: string]: SavedGoal[] } = {}
+    const processed = new Set<number>()
+
+    goals.forEach((goal) => {
+      if (processed.has(goal.id)) return
+
+      // Check if this goal has related goals (created within 5 minutes)
+      const related = goals.filter(
+        (otherGoal) =>
+          otherGoal.id !== goal.id &&
+          !processed.has(otherGoal.id) &&
+          (otherGoal.description.includes("Part of:") ||
+            Math.abs(new Date(otherGoal.createdAt).getTime() - new Date(goal.createdAt).getTime()) < 300000),
+      )
+
+      if (related.length > 0) {
+        // This is a group of related goals
+        const groupKey = `group_${goal.createdAt}`
+        grouped[groupKey] = [goal, ...related]
+        processed.add(goal.id)
+        related.forEach((r) => processed.add(r.id))
+      } else {
+        // This is a standalone goal
+        grouped[`single_${goal.id}`] = [goal]
+        processed.add(goal.id)
+      }
+    })
+
+    return grouped
+  }
+
+  const groupedGoals = groupRelatedGoals(displayGoals)
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
       <SiteHeader />
@@ -475,91 +510,146 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {displayGoals.map((goal) => {
-                      const currentMilestone = goal.milestones.find((m) => m.status === "in-progress")
-                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status === "in-progress")
-
-                      return (
-                        <div
-                          key={goal.id}
-                          className="border border-stone-200 rounded-2xl p-6 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h3 className="font-serif text-xl text-stone-800 mb-1">{goal.title}</h3>
-                              <p className="text-sm text-stone-600 font-light">
-                                {goal.completedSubGoals} of {goal.subGoals.length} steps completed
-                              </p>
-                              {goal.description && (
-                                <p className="text-sm text-stone-500 font-light mt-1">{goal.description}</p>
-                              )}
-                              {currentMilestone && (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <span className="text-xs text-amber-600 font-medium">Current:</span>
-                                  <span className="text-xs text-stone-700">{currentMilestone.task}</span>
-                                  {goals.length > 0 && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => markMilestoneComplete(goal.id, currentMilestoneIndex)}
-                                      className="ml-2 h-6 px-2 text-xs rounded-full bg-sage-500 hover:bg-sage-600 text-white"
-                                    >
-                                      <Check className="h-3 w-3 mr-1" />
-                                      Complete
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <Badge className={`${getStatusColor(goal.status)} text-white font-light rounded-full px-3`}>
-                              {getStatusText(goal.status)}
-                            </Badge>
-                          </div>
-
+                    {Object.entries(groupedGoals).map(([groupKey, goals]) => (
+                      <div key={groupKey}>
+                        {goals.length > 1 && (
                           <div className="mb-4">
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-stone-600 font-light">Progress</span>
-                              <span className="text-stone-800">{goal.progress}%</span>
-                            </div>
-                            <Progress
-                              value={goal.progress}
-                              className="h-2 bg-stone-100"
-                              style={
-                                {
-                                  "--progress-background":
-                                    goal.status === "on-track" || goal.status === "completed"
-                                      ? "#8EB69B"
-                                      : goal.status === "behind"
-                                        ? "#F87171"
-                                        : "#FBBF24",
-                                } as React.CSSProperties
-                              }
-                            />
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-stone-500 font-light">
-                              Due: {new Date(goal.dueDate).toLocaleDateString()}
-                            </span>
-                            <div className="space-x-2">
-                              <Link href={`/goal/${goal.id}`}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-full border-stone-200 text-stone-700"
+                            <h4 className="text-lg font-serif text-stone-800 mb-2">
+                              {goals[0].description.includes("Part of:")
+                                ? goals[0].description.replace("Part of: ", "")
+                                : "Related Goals"}
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {goals.map((goal) => (
+                                <div
+                                  key={goal.id}
+                                  className="border border-stone-200 rounded-2xl p-4 hover:shadow-md transition-shadow"
                                 >
-                                  View Details
-                                </Button>
-                              </Link>
-                              <Link href={`/timeline?goalId=${goal.id}`}>
-                                <Button size="sm" className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">
-                                  View Timeline
-                                </Button>
-                              </Link>
+                                  {/* Simplified goal card for grouped display */}
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                      <h5 className="font-serif text-lg text-stone-800 mb-1">{goal.title}</h5>
+                                      <p className="text-xs text-stone-600 font-light">
+                                        {goal.completedSubGoals} of {goal.subGoals.length} steps completed
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      className={`${getStatusColor(goal.status)} text-white font-light rounded-full px-2 text-xs`}
+                                    >
+                                      {goal.progress}%
+                                    </Badge>
+                                  </div>
+                                  <div className="mb-3">
+                                    <Progress value={goal.progress} className="h-1.5 bg-stone-100" />
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-stone-500 font-light">
+                                      Due: {new Date(goal.dueDate).toLocaleDateString()}
+                                    </span>
+                                    <Link href={`/timeline?goalId=${goal.id}`}>
+                                      <Button
+                                        size="sm"
+                                        className="rounded-full bg-rose-400 hover:bg-rose-500 text-white text-xs px-3 py-1"
+                                      >
+                                        View Timeline
+                                      </Button>
+                                    </Link>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )}
+
+                        {goals.length === 1 && (
+                          /* Keep the existing single goal display for standalone goals */
+                          <div className="border border-stone-200 rounded-2xl p-6 hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="font-serif text-xl text-stone-800 mb-1">{goals[0].title}</h3>
+                                <p className="text-sm text-stone-600 font-light">
+                                  {goals[0].completedSubGoals} of {goals[0].subGoals.length} steps completed
+                                </p>
+                                {goals[0].description && (
+                                  <p className="text-sm text-stone-500 font-light mt-1">{goals[0].description}</p>
+                                )}
+                                {goals[0].milestones.find((m) => m.status === "in-progress") && (
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <span className="text-xs text-amber-600 font-medium">Current:</span>
+                                    <span className="text-xs text-stone-700">
+                                      {goals[0].milestones.find((m) => m.status === "in-progress")?.task}
+                                    </span>
+                                    {goals.length > 0 && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() =>
+                                          markMilestoneComplete(
+                                            goals[0].id,
+                                            goals[0].milestones.findIndex((m) => m.status === "in-progress"),
+                                          )
+                                        }
+                                        className="ml-2 h-6 px-2 text-xs rounded-full bg-sage-500 hover:bg-sage-600 text-white"
+                                      >
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Complete
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <Badge
+                                className={`${getStatusColor(goals[0].status)} text-white font-light rounded-full px-3`}
+                              >
+                                {getStatusText(goals[0].status)}
+                              </Badge>
+                            </div>
+
+                            <div className="mb-4">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-stone-600 font-light">Progress</span>
+                                <span className="text-stone-800">{goals[0].progress}%</span>
+                              </div>
+                              <Progress
+                                value={goals[0].progress}
+                                className="h-2 bg-stone-100"
+                                style={
+                                  {
+                                    "--progress-background":
+                                      goals[0].status === "on-track" || goals[0].status === "completed"
+                                        ? "#8EB69B"
+                                        : goals[0].status === "behind"
+                                          ? "#F87171"
+                                          : "#FBBF24",
+                                  } as React.CSSProperties
+                                }
+                              />
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-stone-500 font-light">
+                                Due: {new Date(goals[0].dueDate).toLocaleDateString()}
+                              </span>
+                              <div className="space-x-2">
+                                <Link href={`/goal/${goals[0].id}`}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-full border-stone-200 text-stone-700"
+                                  >
+                                    View Details
+                                  </Button>
+                                </Link>
+                                <Link href={`/timeline?goalId=${goals[0].id}`}>
+                                  <Button size="sm" className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">
+                                    View Timeline
+                                  </Button>
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

@@ -46,6 +46,23 @@ export default function GoalBreakdown() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
 
+  const [allGeneratedGoals, setAllGeneratedGoals] = useState<
+    Array<{
+      title: string
+      description: string
+      timeline: string
+      subGoals: string[]
+      milestones: Array<{
+        week: number
+        task: string
+        status: string
+        progress: number
+      }>
+    }>
+  >([])
+  const [isCreatingMultiple, setIsCreatingMultiple] = useState(false)
+  const [parentGoalTitle, setParentGoalTitle] = useState("")
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
     onFinish: (message) => {
@@ -66,6 +83,50 @@ export default function GoalBreakdown() {
           .map((g) => g.replace(/^\d+\.\s*/, "").trim())
         console.log("Extracted sub-goals:", goals)
         setSubGoals(goals)
+      }
+
+      if (message.content.includes("MULTIPLE_TIMELINES:")) {
+        const timelinesSection = message.content.split("MULTIPLE_TIMELINES:")[1]
+        const timelineBlocks = timelinesSection.split(/TIMELINE_\d+:/).filter((block) => block.trim())
+
+        const parsedGoals = timelineBlocks.map((block, index) => {
+          const lines = block.split("\n").filter((line) => line.trim())
+          const titleLine = lines.find((line) => line.includes("TITLE:"))
+          const goalTitle = titleLine ? titleLine.replace("TITLE:", "").trim() : `Timeline ${index + 1}`
+
+          const goalLines = lines.filter((line) => line.match(/^\d+\./))
+          const goals = goalLines.map((g) => g.replace(/^\d+\.\s*/, "").trim())
+
+          const milestones = goals.map((goalText, idx) => {
+            let week = idx + 1
+            let task = goalText
+
+            const weekMatch = goalText.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
+            if (weekMatch) {
+              week = Number.parseInt(weekMatch[1], 10)
+              task = weekMatch[2].trim()
+            }
+
+            return {
+              week: week,
+              task: task,
+              status: idx === 0 ? "in-progress" : "pending",
+              progress: idx === 0 ? 10 : 0,
+            }
+          })
+
+          return {
+            title: goalTitle,
+            description: `Part of: ${goal?.title || "Multi-timeline goal"}`,
+            timeline: goal?.timeline || "",
+            subGoals: goals,
+            milestones: milestones,
+          }
+        })
+
+        setAllGeneratedGoals(parsedGoals)
+        setIsCreatingMultiple(true)
+        setParentGoalTitle(goal?.title || "Multi-timeline goal")
       }
     },
     onError: (error) => {
@@ -168,6 +229,56 @@ export default function GoalBreakdown() {
     } catch (error) {
       console.error("Error saving goal:", error)
       setError("Failed to save goal. Please try again.")
+      setIsSaving(false)
+    }
+  }
+
+  const saveMultipleGoalsToApp = async () => {
+    if (!goal || allGeneratedGoals.length === 0) return
+
+    setIsSaving(true)
+    try {
+      const existingGoalsJson = localStorage.getItem("userGoals")
+      const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
+
+      const newGoals: SavedGoal[] = allGeneratedGoals.map((timeline, index) => {
+        const dueDate = new Date()
+        if (goal.timeline.toLowerCase().includes("month")) {
+          const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
+          dueDate.setMonth(dueDate.getMonth() + months)
+        } else {
+          dueDate.setMonth(dueDate.getMonth() + 6)
+        }
+
+        return {
+          id: Date.now() + index,
+          title: timeline.title,
+          description: timeline.description,
+          timeline: timeline.timeline,
+          progress: 5,
+          status: "in-progress",
+          dueDate: dueDate.toISOString().split("T")[0],
+          subGoals: timeline.subGoals,
+          completedSubGoals: 0,
+          createdAt: new Date().toISOString(),
+          milestones: timeline.milestones,
+        }
+      })
+
+      const updatedGoals = [...existingGoals, ...newGoals]
+      localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+      localStorage.setItem("currentGoalId", newGoals[0].id.toString())
+      localStorage.removeItem("newGoal")
+
+      console.log("Multiple goals saved successfully:", newGoals)
+      setHasSaved(true)
+
+      setTimeout(() => {
+        setIsSaving(false)
+      }, 1000)
+    } catch (error) {
+      console.error("Error saving multiple goals:", error)
+      setError("Failed to save goals. Please try again.")
       setIsSaving(false)
     }
   }
@@ -482,6 +593,63 @@ export default function GoalBreakdown() {
                         <>
                           <Save className="h-4 w-4 mr-2" />
                           Save to Dashboard
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Multiple Timelines Display */}
+            {isCreatingMultiple && allGeneratedGoals.length > 0 && (
+              <Card className="mt-6 border-0 rounded-3xl shadow-md">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
+                    <Target className="h-5 w-5 mr-2 text-sage-500" />
+                    Your Multiple Timelines
+                  </CardTitle>
+                  <CardDescription className="text-stone-600 font-light">
+                    {parentGoalTitle} broken down into {allGeneratedGoals.length} focused timelines
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {allGeneratedGoals.map((timeline, timelineIndex) => (
+                      <div key={timelineIndex} className="border border-stone-200 rounded-xl p-6">
+                        <h3 className="font-serif text-xl text-stone-800 mb-4">{timeline.title}</h3>
+                        <div className="space-y-3">
+                          {timeline.subGoals.map((subGoal, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start p-4 border border-stone-200 rounded-xl hover:shadow-sm transition-shadow"
+                            >
+                              <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
+                                {index + 1}
+                              </div>
+                              <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <Button
+                      onClick={() => saveMultipleGoalsToApp()}
+                      disabled={isSaving}
+                      className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving All Timelines...
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Create All Timelines
                         </>
                       )}
                     </Button>
