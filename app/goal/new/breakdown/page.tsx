@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,6 +64,12 @@ export default function GoalBreakdown() {
   >([])
   const [isCreatingMultiple, setIsCreatingMultiple] = useState(false)
   const [parentGoalTitle, setParentGoalTitle] = useState("")
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
@@ -351,6 +357,11 @@ export default function GoalBreakdown() {
     console.log("Messages updated:", messages)
   }, [messages])
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, isLoading])
+
   if (!goal) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
@@ -488,6 +499,7 @@ export default function GoalBreakdown() {
                       </div>
                     </div>
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex gap-2">
