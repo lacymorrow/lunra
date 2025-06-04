@@ -325,7 +325,7 @@ export default function Calendar() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">Calendar</h1>
+          <h1 className="text-4xl font-serif text-stone-800 mb-3">Life Calendar</h1>
           <p className="text-stone-600 font-light">
             Organize your goals, appointments, and life events with beautiful color coding.
           </p>

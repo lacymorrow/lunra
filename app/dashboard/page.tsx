@@ -36,7 +36,7 @@ interface SavedGoal {
   completedSubGoals: number
   createdAt: string
   milestones: Array<{
-    month: number
+    week: number
     task: string
     status: string
     progress: number
@@ -215,9 +215,9 @@ export default function Dashboard() {
       completedSubGoals: 3,
       createdAt: "2024-01-01T00:00:00.000Z",
       milestones: [
-        { month: 1, task: "Market research & validation", status: "completed", progress: 100 },
-        { month: 2, task: "Business plan development", status: "completed", progress: 100 },
-        { month: 3, task: "Legal setup & registration", status: "in-progress", progress: 60 },
+        { week: 1, task: "Market research & validation", status: "completed", progress: 100 },
+        { week: 2, task: "Business plan development", status: "completed", progress: 100 },
+        { week: 3, task: "Legal setup & registration", status: "in-progress", progress: 60 },
       ],
     },
     {
@@ -238,9 +238,9 @@ export default function Dashboard() {
       completedSubGoals: 3,
       createdAt: "2024-01-01T00:00:00.000Z",
       milestones: [
-        { month: 1, task: "Establish workout routine", status: "completed", progress: 100 },
-        { month: 2, task: "Nutrition plan implementation", status: "completed", progress: 100 },
-        { month: 3, task: "First fitness assessment", status: "completed", progress: 100 },
+        { week: 1, task: "Establish workout routine", status: "completed", progress: 100 },
+        { week: 2, task: "Nutrition plan implementation", status: "completed", progress: 100 },
+        { week: 3, task: "First fitness assessment", status: "completed", progress: 100 },
       ],
     },
     {
@@ -263,9 +263,9 @@ export default function Dashboard() {
       completedSubGoals: 2,
       createdAt: "2024-01-01T00:00:00.000Z",
       milestones: [
-        { month: 1, task: "Complete beginner course", status: "completed", progress: 100 },
-        { month: 2, task: "Daily practice routine", status: "completed", progress: 100 },
-        { month: 3, task: "Conversation partner", status: "in-progress", progress: 40 },
+        { week: 1, task: "Complete beginner course", status: "completed", progress: 100 },
+        { week: 2, task: "Daily practice routine", status: "completed", progress: 100 },
+        { week: 3, task: "Conversation partner", status: "in-progress", progress: 40 },
       ],
     },
   ]
@@ -476,8 +476,8 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-6">
                     {displayGoals.map((goal) => {
-                      const currentMilestone = goal.milestones.find((m) => m.status !== "completed")
-                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status !== "completed")
+                      const currentMilestone = goal.milestones.find((m) => m.status === "in-progress")
+                      const currentMilestoneIndex = goal.milestones.findIndex((m) => m.status === "in-progress")
 
                       return (
                         <div
@@ -598,7 +598,7 @@ export default function Dashboard() {
                     variant="outline"
                   >
                     <CalendarIcon className="h-4 w-4 mr-2 text-sage-500" />
-                    Calendar
+                    Goal Calendar
                   </Button>
                 </Link>
                 <Link href="/check-in" className="block">

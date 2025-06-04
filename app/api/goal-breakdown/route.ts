@@ -25,9 +25,10 @@ CRITICAL GUIDELINES:
 4. Ask 3-5 total questions before providing the breakdown
 5. Focus on practical aspects: current situation, resources, constraints, experience level, specific preferences
 6. Make questions specific to their goal type, not generic
-7. STRICTLY RESPECT THE USER'S TIMELINE - This is absolutely critical. Break goals into WEEKS, not months
-8. For a 2-month timeline, create 8 weeks of milestones. For 6 months, create 24 weeks, etc.
-9. The final milestone MUST be scheduled for the last week of their timeline
+7. STRICTLY RESPECT THE USER'S TIMELINE - This is absolutely critical
+8. If user says 1 month, create ONLY milestones that fit within 1 month
+9. If user says 2 months, create ONLY milestones that fit within 2 months
+10. NEVER exceed the user's specified timeframe
 
 QUESTION FLOW:
 - First question: Focus on their experience/background with this type of goal
@@ -45,18 +46,19 @@ After gathering enough information (3-5 questions), provide the breakdown in thi
 "Based on your answers, here's your personalized action plan for your [USER'S SPECIFIED TIMELINE]:
 
 SUB_GOALS:
-1. [Week 1] [Specific sub-goal]
-2. [Week 2] [Specific sub-goal]
-3. [Week 3] [Specific sub-goal]
-4. [Week 4] [Specific sub-goal]
-5. [Week 5] [Specific sub-goal]
-6. [Week 6] [Specific sub-goal]
-7. [Week 7] [Specific sub-goal]
-8. [Week 8] [Specific sub-goal - final milestone]"
+1. [Week 1] [Specific sub-goal that fits within their timeline]
+2. [Week 2] [Specific sub-goal that fits within their timeline]
+3. [Week 3] [Specific sub-goal that fits within their timeline]
+4. [Week 4] [Specific sub-goal that fits within their timeline]"
 
-IMPORTANT: Calculate the total weeks from the user's timeline (2 months = 8 weeks, 3 months = 12 weeks, etc.) and create that exact number of weekly milestones.
+IMPORTANT: 
+- For 1 month timeline: Create exactly 4 weekly milestones (Week 1-4)
+- For 2 months timeline: Create exactly 8 weekly milestones (Week 1-8)
+- For 3 months timeline: Create exactly 12 weekly milestones (Week 1-12)
+- NEVER create more milestones than the timeline allows
+- Always reference the user's exact timeline in your response
 
-Keep responses conversational, encouraging, and focused. Remember: ONE QUESTION PER RESPONSE.`,
+Keep responses conversational, encouraging, and focused. Remember: ONE QUESTION PER RESPONSE and RESPECT THE TIMELINE.`,
       messages,
     })
 

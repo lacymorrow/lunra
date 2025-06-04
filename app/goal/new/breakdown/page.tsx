@@ -97,7 +97,7 @@ export default function GoalBreakdown() {
         }
 
         // Parse timeline to get max weeks
-        let maxWeeks = 8 // Default to 8 weeks (2 months)
+        let maxWeeks = 4 // Default to 4 weeks (1 month)
         if (goal.timeline) {
           const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
           const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
