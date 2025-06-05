@@ -39,7 +39,7 @@ export default function CreateGoal() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+    <div className="min-h-screen bg-stone-50">
       <SiteHeader />
 
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -52,7 +52,7 @@ export default function CreateGoal() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Goal Creation Form */}
           <div className="lg:col-span-2">
-            <Card className="border-0 rounded-3xl shadow-md">
+            <Card className="border-0 rounded-3xl shadow-md bg-white">
               <CardHeader>
                 <CardTitle className="text-2xl font-serif text-stone-800">Tell us about your goal</CardTitle>
                 <CardDescription className="text-stone-600 font-light">
@@ -126,7 +126,7 @@ export default function CreateGoal() {
 
           {/* Tips and Examples */}
           <div className="space-y-6">
-            <Card className="border-0 rounded-3xl shadow-md">
+            <Card className="border-0 rounded-3xl shadow-md bg-white">
               <CardHeader>
                 <CardTitle className="text-xl font-serif text-stone-800">Tips for Better Goals</CardTitle>
               </CardHeader>
@@ -154,8 +154,8 @@ export default function CreateGoal() {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <div className="w-8 h-8 bg-sage-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <Target className="h-4 w-4 text-sage-500" />
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                    <Target className="h-4 w-4 text-green-500" />
                   </div>
                   <div>
                     <h4 className="font-medium text-stone-800 mb-1">Include Context</h4>
@@ -167,7 +167,7 @@ export default function CreateGoal() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 rounded-3xl shadow-md">
+            <Card className="border-0 rounded-3xl shadow-md bg-white">
               <CardHeader>
                 <CardTitle className="text-xl font-serif text-stone-800">Example Goals</CardTitle>
               </CardHeader>
@@ -176,7 +176,7 @@ export default function CreateGoal() {
                   <p className="text-sm font-medium text-stone-800">"Launch my own consulting business"</p>
                   <p className="text-xs text-stone-600 mt-1 font-light">Career & Business</p>
                 </div>
-                <div className="p-4 bg-sage-50 rounded-xl border border-sage-100">
+                <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                   <p className="text-sm font-medium text-stone-800">"Run a half marathon"</p>
                   <p className="text-xs text-stone-600 mt-1 font-light">Health & Fitness</p>
                 </div>

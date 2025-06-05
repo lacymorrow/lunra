@@ -125,7 +125,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light"
+                  className=" hidden text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light"
                 >
                   Explore the Process
                 </Button>

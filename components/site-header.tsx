@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Moon, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/logo"
 import { useState } from "react"
 
 interface SiteHeaderProps {
@@ -18,14 +19,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center">
-                <Moon className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-2xl font-serif text-stone-800">lunra</span>
-            </Link>
-          </div>
+          <Logo size="lg" href="/" />
 
           {isLanding ? (
             // Landing page navigation
@@ -45,7 +39,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 </a>
               </div>
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                <Button variant="ghost" className="hidden text-stone-600 hover:text-stone-800">
                   Sign In
                 </Button>
                 <Link href="/dashboard">
@@ -80,7 +74,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               </div>
 
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden md:flex">
+                <Button variant="ghost" className="hidden">
                   Account
                 </Button>
                 <Link href="/create-goal">

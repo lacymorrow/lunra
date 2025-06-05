@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Moon, Users, MessageCircle } from "lucide-react"
+import { Users, MessageCircle } from "lucide-react"
+import { Logo } from "@/components/logo"
 
 export function SiteFooter() {
   return (
@@ -7,11 +8,8 @@ export function SiteFooter() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-400 rounded-full flex items-center justify-center">
-                <Moon className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-2xl font-serif">lunra</span>
+            <div className="mb-6">
+              <Logo size="lg" variant="white" href="/" />
             </div>
             <p className="text-stone-400 mb-6 font-light leading-relaxed">
               Mindful goal planning that honors your journey and celebrates every step toward your dreams.
@@ -22,9 +20,6 @@ export function SiteFooter() {
               </div>
               <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center hover:bg-stone-600 transition-colors">
                 <MessageCircle className="h-5 w-5" />
-              </div>
-              <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center hover:bg-stone-600 transition-colors">
-                <Moon className="h-5 w-5" />
               </div>
             </div>
           </div>
@@ -42,62 +37,62 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Mobile App
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Integrations
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="font-serif text-lg mb-6">Community</h3>
+            <h3 className="hidden font-serif text-lg mb-6">Community</h3>
             <ul className="space-y-3 text-stone-400 font-light">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Our Story
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Blog
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Join Us
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Connect
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="font-serif text-lg mb-6">Support</h3>
+            <h3 className="hidden font-serif text-lg mb-6">Support</h3>
             <ul className="space-y-3 text-stone-400 font-light">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Community
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Privacy
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hidden hover:text-white transition-colors">
                   Terms
                 </a>
               </li>
