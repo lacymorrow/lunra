@@ -19,7 +19,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Link href="/landing" className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center">
                 <Moon className="h-5 w-5 text-white" />
               </div>

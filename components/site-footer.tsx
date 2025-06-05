@@ -32,12 +32,12 @@ export function SiteFooter() {
             <h3 className="font-serif text-lg mb-6">Experience</h3>
             <ul className="space-y-3 text-stone-400 font-light">
               <li>
-                <Link href="/landing#features" className="hover:text-white transition-colors">
+                <Link href="/#features" className="hover:text-white transition-colors">
                   Features
                 </Link>
               </li>
               <li>
-                <Link href="/landing#pricing" className="hover:text-white transition-colors">
+                <Link href="/#pricing" className="hover:text-white transition-colors">
                   Pricing
                 </Link>
               </li>
