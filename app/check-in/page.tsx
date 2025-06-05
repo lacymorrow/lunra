@@ -12,6 +12,8 @@ import Link from "next/link"
 import { useChat } from "ai/react"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { useToast } from "@/hooks/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function CheckIn() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -27,6 +29,8 @@ export default function CheckIn() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/check-in-coach",
   })
+
+  const { toast } = useToast()
 
   const questions = [
     {
@@ -100,13 +104,6 @@ export default function CheckIn() {
 
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="mb-12">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
             <DashboardHeader
               title="Your Gentle Guidance"
               description="Based on your check-in, here's personalized wisdom for the week ahead."
@@ -279,6 +276,7 @@ export default function CheckIn() {
             </div>
           </div>
         </div>
+        <Toaster />
       </div>
     )
   }
@@ -290,13 +288,6 @@ export default function CheckIn() {
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
           <DashboardHeader
             title="Weekly Reflection"
             description="Take a moment to reflect on your progress and receive gentle guidance for the week ahead."
@@ -433,6 +424,7 @@ export default function CheckIn() {
           </div>
         </div>
       </div>
+      <Toaster />
     </div>
   )
 }

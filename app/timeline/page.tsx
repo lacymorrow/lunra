@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Target, CheckCircle, Heart, Check } from "lucide-react"
 import Link from "next/link"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { XAxis, YAxis, ResponsiveContainer, Area, AreaChart } from "recharts"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 
@@ -217,6 +215,44 @@ export default function Timeline() {
     },
   }
 
+  // Simple progress visualization component
+  const SimpleProgressChart = ({ data }: { data: any[] }) => {
+    if (!data || data.length === 0) {
+      return (
+        <div className="h-[300px] flex items-center justify-center text-stone-500">
+          <p>No progress data available</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="h-[300px] flex items-end justify-between p-4 space-x-2">
+        {data.map((item, index) => {
+          const maxProgress = Math.max(
+            ...data.map((d) =>
+              Object.values(d)
+                .filter((v) => typeof v === "number")
+                .reduce((a: number, b: number) => Math.max(a, b), 0),
+            ),
+          )
+          const progress = (Object.values(item).filter((v) => typeof v === "number")[0] as number) || 0
+          const height = maxProgress > 0 ? (progress / maxProgress) * 200 : 0
+
+          return (
+            <div key={index} className="flex flex-col items-center flex-1">
+              <div
+                className="w-full bg-rose-400 rounded-t-md transition-all duration-300"
+                style={{ height: `${height}px`, minHeight: progress > 0 ? "4px" : "0px" }}
+              />
+              <div className="mt-2 text-xs text-stone-600 text-center">{item.week}</div>
+              <div className="text-xs text-stone-500 text-center">{progress}%</div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   // Generate progress data from user goals
   const generateProgressData = () => {
     // If no user goals, return empty data
@@ -270,36 +306,8 @@ export default function Timeline() {
     })
   }
 
-  // Generate chart configuration from user goals
-  const generateChartConfig = () => {
-    if (userGoals.length === 0) {
-      return {
-        progress: {
-          label: "Progress",
-          color: "#F87171",
-        },
-      }
-    }
-
-    const config: Record<string, { label: string; color: string }> = {}
-
-    // Assign a color to each goal
-    const colors = ["#F87171", "#8EB69B", "#FBBF24", "#A78BFA", "#60A5FA", "#34D399"]
-
-    userGoals.forEach((goal, index) => {
-      const goalKey = goal.title.toLowerCase().replace(/[^a-z0-9]/g, "_")
-      config[goalKey] = {
-        label: goal.title,
-        color: colors[index % colors.length],
-      }
-    })
-
-    return config
-  }
-
   // Get real progress data
   const progressData = generateProgressData()
-  const chartConfig = generateChartConfig()
 
   // Get current goal
   const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
@@ -484,43 +492,7 @@ export default function Timeline() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={progressData}>
-                      <XAxis dataKey="week" />
-                      <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      {userGoals.length > 0 ? (
-                        userGoals.map((goal, index) => {
-                          const goalKey = goal.title.toLowerCase().replace(/[^a-z0-9]/g, "_")
-                          const colors = ["#F87171", "#8EB69B", "#FBBF24", "#A78BFA", "#60A5FA", "#34D399"]
-                          const color = colors[index % colors.length]
-
-                          return (
-                            <Area
-                              key={goalKey}
-                              type="monotone"
-                              dataKey={goalKey}
-                              stackId="1"
-                              stroke={color}
-                              fill={color}
-                              fillOpacity={0.6}
-                            />
-                          )
-                        })
-                      ) : (
-                        <Area
-                          type="monotone"
-                          dataKey="progress"
-                          stackId="1"
-                          stroke="#F87171"
-                          fill="#F87171"
-                          fillOpacity={0.6}
-                        />
-                      )}
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                <SimpleProgressChart data={progressData} />
               </CardContent>
             </Card>
           </div>

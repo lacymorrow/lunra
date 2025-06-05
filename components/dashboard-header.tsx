@@ -18,7 +18,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   backText,
 }) => {
   return (
-    <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
+  <div className="w-full">
+
+  <Link
+              href="/dashboard"
+              className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
+    <header className="my-3 rounded-lg border-b border-stone-200 bg-white/90 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-6">
@@ -56,5 +65,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         </div>
       </div>
     </header>
+    </div>
   )
 }

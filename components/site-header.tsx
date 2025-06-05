@@ -45,7 +45,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 </a>
               </div>
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden">
                   Sign In
                 </Button>
                 <Link href="/dashboard">
@@ -80,7 +80,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               </div>
 
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden md:flex">
+                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden">
                   Account
                 </Button>
                 <Link href="/create-goal">

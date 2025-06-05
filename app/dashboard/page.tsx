@@ -24,6 +24,7 @@ import {
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
+import { useToast } from "@/hooks/use-toast"
 
 interface SavedGoal {
   id: number
@@ -53,6 +54,8 @@ export default function Dashboard() {
     start.setDate(today.getDate() - dayOfWeek)
     return start
   })
+
+  const { toast } = useToast()
 
   // Sample calendar events (matching the calendar page)
   const [calendarEvents] = useState([

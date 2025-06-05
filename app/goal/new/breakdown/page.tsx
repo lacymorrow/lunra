@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useToast } from "@/hooks/use-toast"
 
 interface Goal {
   title: string
@@ -70,6 +71,8 @@ export default function GoalBreakdown() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+
+  const { toast } = useToast()
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
@@ -149,6 +152,12 @@ export default function GoalBreakdown() {
 
     setIsSaving(true)
     try {
+      // Show saving toast
+      toast({
+        title: "Saving your goal...",
+        description: "Creating your personalized action plan",
+      })
+
       // Get existing goals from localStorage
       const existingGoalsJson = localStorage.getItem("userGoals")
       const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
@@ -230,13 +239,33 @@ export default function GoalBreakdown() {
       console.log("Goal saved successfully:", newGoal)
       setHasSaved(true)
 
+      // Show success toast
+      toast({
+        title: "Goal saved successfully! 🎉",
+        description: "Your timeline has been created and saved to your dashboard",
+      })
+
       // Small delay to show success state
       setTimeout(() => {
         setIsSaving(false)
+        // Redirect to timeline page
+        toast({
+          title: "Redirecting to timeline...",
+          description: "Taking you to your personalized timeline view",
+        })
+        router.push("/timeline")
       }, 1000)
     } catch (error) {
       console.error("Error saving goal:", error)
       setError("Failed to save goal. Please try again.")
+
+      // Show error toast
+      toast({
+        title: "Error saving goal",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+
       setIsSaving(false)
     }
   }
@@ -246,6 +275,12 @@ export default function GoalBreakdown() {
 
     setIsSaving(true)
     try {
+      // Show saving toast
+      toast({
+        title: "Saving your timelines...",
+        description: `Creating ${allGeneratedGoals.length} personalized timelines`,
+      })
+
       const existingGoalsJson = localStorage.getItem("userGoals")
       const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
 
@@ -281,12 +316,32 @@ export default function GoalBreakdown() {
       console.log("Multiple goals saved successfully:", newGoals)
       setHasSaved(true)
 
+      // Show success toast
+      toast({
+        title: "Timelines created successfully! 🎉",
+        description: `${newGoals.length} timelines have been saved to your dashboard`,
+      })
+
       setTimeout(() => {
         setIsSaving(false)
+        // Redirect to timeline page
+        toast({
+          title: "Redirecting to timeline...",
+          description: "Taking you to your personalized timeline view",
+        })
+        router.push("/timeline")
       }, 1000)
     } catch (error) {
       console.error("Error saving multiple goals:", error)
       setError("Failed to save goals. Please try again.")
+
+      // Show error toast
+      toast({
+        title: "Error saving timelines",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+
       setIsSaving(false)
     }
   }
@@ -294,11 +349,19 @@ export default function GoalBreakdown() {
   // Navigate to timeline with saved goal
   const goToTimeline = () => {
     if (hasSaved) {
+      toast({
+        title: "Redirecting to timeline...",
+        description: "Taking you to your personalized timeline view",
+      })
       router.push("/timeline")
     } else {
       // Save first, then navigate
       saveGoalToApp().then(() => {
         setTimeout(() => {
+          toast({
+            title: "Redirecting to timeline...",
+            description: "Taking you to your personalized timeline view",
+          })
           router.push("/timeline")
         }, 1500)
       })
@@ -308,11 +371,19 @@ export default function GoalBreakdown() {
   // Navigate to dashboard with saved goal
   const goToDashboard = () => {
     if (hasSaved) {
+      toast({
+        title: "Redirecting to dashboard...",
+        description: "Taking you to your goal dashboard",
+      })
       router.push("/dashboard")
     } else {
       // Save first, then navigate
       saveGoalToApp().then(() => {
         setTimeout(() => {
+          toast({
+            title: "Redirecting to dashboard...",
+            description: "Taking you to your goal dashboard",
+          })
           router.push("/dashboard")
         }, 1500)
       })
@@ -722,12 +793,21 @@ export default function GoalBreakdown() {
                   <div className="flex items-center">
                     <div
                       className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        subGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
+                        subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
                       }`}
                     >
-                      {subGoals.length > 0 && <CheckCircle className="h-3 w-3 text-white" />}
+                      {(subGoals.length > 0 || allGeneratedGoals.length > 0) && (
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      )}
                     </div>
-                    <span className="text-sm text-stone-700 font-light">Sub-goals generated</span>
+                    <span className="text-sm text-stone-700 font-light">
+                      Sub-goals generated{" "}
+                      {subGoals.length > 0
+                        ? `(${subGoals.length})`
+                        : allGeneratedGoals.length > 0
+                          ? `(${allGeneratedGoals.length} timelines)`
+                          : ""}
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <div
