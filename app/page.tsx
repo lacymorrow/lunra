@@ -20,6 +20,7 @@ import {
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { WaitingList } from "@/components/waiting-list"
 
 export default function LandingPage() {
   const features = [
@@ -296,6 +297,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Waiting List Section */}
+      <WaitingList />
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-24 px-6" style={{ backgroundColor: "#faf8f5" }}>
