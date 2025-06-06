@@ -13,6 +13,7 @@ import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
+import { useGoalData } from "@/contexts/goal-data-context"
 
 interface Goal {
   title: string
@@ -147,24 +148,20 @@ export default function GoalBreakdown() {
   })
 
   // Save goal to localStorage and application state
+  const { dataManager, refreshGoals } = useGoalData()
+
   const saveGoalToApp = async () => {
     if (!goal || subGoals.length === 0) return
 
     setIsSaving(true)
     try {
-      // Show saving toast
       toast({
         title: "Saving your goal...",
         description: "Creating your personalized action plan",
       })
 
-      // Get existing goals from localStorage
-      const existingGoalsJson = localStorage.getItem("userGoals")
-      const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
-
       // Create timeline milestones from sub-goals
       const milestones = subGoals.map((subGoal, index) => {
-        // Extract week from the sub-goal if it's in the format "[Week X] Task description"
         let week = index + 1
         let task = subGoal
 
@@ -174,20 +171,18 @@ export default function GoalBreakdown() {
           task = weekMatch[2].trim()
         }
 
-        // Parse timeline to get max weeks
-        let maxWeeks = 4 // Default to 4 weeks (1 month)
+        let maxWeeks = 4
         if (goal.timeline) {
           const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
           const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
 
           if (monthsMatch) {
-            maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4 // Convert months to weeks
+            maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
           } else if (weeksMatch) {
             maxWeeks = Number.parseInt(weeksMatch[1], 10)
           }
         }
 
-        // Ensure week doesn't exceed the timeline
         week = Math.min(week, maxWeeks)
 
         return {
@@ -207,17 +202,15 @@ export default function GoalBreakdown() {
         const years = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1")
         dueDate.setFullYear(dueDate.getFullYear() + years)
       } else {
-        // Default to 6 months if timeline is unclear
         dueDate.setMonth(dueDate.getMonth() + 6)
       }
 
       // Create new goal object
-      const newGoal: SavedGoal = {
-        id: Date.now(), // Simple ID generation
+      const newGoal: Omit<SavedGoal, "id"> = {
         title: goal.title,
         description: goal.description || "",
         timeline: goal.timeline || "",
-        progress: 5, // Starting progress
+        progress: 5,
         status: "in-progress",
         dueDate: dueDate.toISOString().split("T")[0],
         subGoals: subGoals,
@@ -226,29 +219,25 @@ export default function GoalBreakdown() {
         milestones: milestones,
       }
 
-      // Add to existing goals
-      const updatedGoals = [...existingGoals, newGoal]
-
-      // Save to localStorage
-      localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
-      localStorage.setItem("currentGoalId", newGoal.id.toString())
+      // Save using data manager
+      const savedGoal = await dataManager.createGoal(newGoal)
 
       // Clean up the temporary goal data
       localStorage.removeItem("newGoal")
 
-      console.log("Goal saved successfully:", newGoal)
+      console.log("Goal saved successfully:", savedGoal)
       setHasSaved(true)
 
-      // Show success toast
       toast({
         title: "Goal saved successfully! 🎉",
         description: "Your timeline has been created and saved to your dashboard",
       })
 
-      // Small delay to show success state
+      // Refresh goals in context
+      await refreshGoals()
+
       setTimeout(() => {
         setIsSaving(false)
-        // Redirect to timeline page
         toast({
           title: "Redirecting to timeline...",
           description: "Taking you to your personalized timeline view",
@@ -259,7 +248,6 @@ export default function GoalBreakdown() {
       console.error("Error saving goal:", error)
       setError("Failed to save goal. Please try again.")
 
-      // Show error toast
       toast({
         title: "Error saving goal",
         description: "Something went wrong. Please try again.",
@@ -275,16 +263,12 @@ export default function GoalBreakdown() {
 
     setIsSaving(true)
     try {
-      // Show saving toast
       toast({
         title: "Saving your timelines...",
         description: `Creating ${allGeneratedGoals.length} personalized timelines`,
       })
 
-      const existingGoalsJson = localStorage.getItem("userGoals")
-      const existingGoals: SavedGoal[] = existingGoalsJson ? JSON.parse(existingGoalsJson) : []
-
-      const newGoals: SavedGoal[] = allGeneratedGoals.map((timeline, index) => {
+      const newGoals: Array<Omit<SavedGoal, "id">> = allGeneratedGoals.map((timeline) => {
         const dueDate = new Date()
         if (goal.timeline.toLowerCase().includes("month")) {
           const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
@@ -294,7 +278,6 @@ export default function GoalBreakdown() {
         }
 
         return {
-          id: Date.now() + index,
           title: timeline.title,
           description: timeline.description,
           timeline: timeline.timeline,
@@ -308,23 +291,24 @@ export default function GoalBreakdown() {
         }
       })
 
-      const updatedGoals = [...existingGoals, ...newGoals]
-      localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
-      localStorage.setItem("currentGoalId", newGoals[0].id.toString())
+      // Save all goals using data manager
+      const savedGoals = await Promise.all(newGoals.map((goalData) => dataManager.createGoal(goalData)))
+
       localStorage.removeItem("newGoal")
 
-      console.log("Multiple goals saved successfully:", newGoals)
+      console.log("Multiple goals saved successfully:", savedGoals)
       setHasSaved(true)
 
-      // Show success toast
       toast({
         title: "Timelines created successfully! 🎉",
-        description: `${newGoals.length} timelines have been saved to your dashboard`,
+        description: `${savedGoals.length} timelines have been saved to your dashboard`,
       })
+
+      // Refresh goals in context
+      await refreshGoals()
 
       setTimeout(() => {
         setIsSaving(false)
-        // Redirect to timeline page
         toast({
           title: "Redirecting to timeline...",
           description: "Taking you to your personalized timeline view",
@@ -335,7 +319,6 @@ export default function GoalBreakdown() {
       console.error("Error saving multiple goals:", error)
       setError("Failed to save goals. Please try again.")
 
-      // Show error toast
       toast({
         title: "Error saving timelines",
         description: "Something went wrong. Please try again.",

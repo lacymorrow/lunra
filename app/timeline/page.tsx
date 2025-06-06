@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, Target, CheckCircle, Heart, Check } from "lucide-react"
+import { Calendar, Clock, Target, CheckCircle, Heart, Check, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
+import { useGoalData } from "@/contexts/goal-data-context"
 
 interface SavedGoal {
   id: number
@@ -30,30 +31,12 @@ interface SavedGoal {
 
 export default function Timeline() {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
-  const [userGoals, setUserGoals] = useState<SavedGoal[]>([])
+  const { goals: userGoals, loading, error, dataManager, refreshGoals } = useGoalData()
   const [relatedGoals, setRelatedGoals] = useState<SavedGoal[]>([])
-
-  // Load goals from localStorage
-  useEffect(() => {
-    const storedGoals = localStorage.getItem("userGoals")
-    const currentGoalId = localStorage.getItem("currentGoalId")
-
-    if (storedGoals) {
-      const goals: SavedGoal[] = JSON.parse(storedGoals)
-      setUserGoals(goals)
-
-      // Set the selected goal to the most recent one or the current one
-      if (currentGoalId) {
-        setSelectedGoalId(Number.parseInt(currentGoalId))
-      } else if (goals.length > 0) {
-        setSelectedGoalId(goals[goals.length - 1].id)
-      }
-    }
-  }, [])
 
   // Add after the existing goal loading useEffect:
   useEffect(() => {
-    if (selectedGoalId && userGoals.length > 0) {
+    if (selectedGoalId && userGoals && userGoals.length > 0) {
       const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
       if (currentGoal) {
         // Find related goals (goals with similar descriptions or created around the same time)
@@ -80,108 +63,22 @@ export default function Timeline() {
     return () => clearTimeout(scrollTimeout)
   }, [])
 
-  // Function to mark milestone as complete
-  const markMilestoneComplete = (goalId: number, milestoneIndex: number) => {
-    const updatedGoals = userGoals.map((goal) => {
-      if (goal.id === goalId) {
-        const updatedMilestones = [...goal.milestones]
-        const milestone = updatedMilestones[milestoneIndex]
-
-        if (milestone.status !== "completed") {
-          // Mark as completed
-          updatedMilestones[milestoneIndex] = {
-            ...milestone,
-            status: "completed",
-            progress: 100,
-          }
-
-          // Update next milestone to in-progress if it exists
-          if (milestoneIndex + 1 < updatedMilestones.length) {
-            const nextMilestone = updatedMilestones[milestoneIndex + 1]
-            if (nextMilestone.status === "pending") {
-              updatedMilestones[milestoneIndex + 1] = {
-                ...nextMilestone,
-                status: "in-progress",
-                progress: 10,
-              }
-            }
-          }
-
-          // Calculate new overall progress
-          const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
-          const newProgress = Math.round((completedMilestones / updatedMilestones.length) * 100)
-
-          // Update goal status based on progress
-          let newStatus = goal.status
-          if (newProgress === 100) {
-            newStatus = "completed"
-          } else if (newProgress > 50) {
-            newStatus = "on-track"
-          } else {
-            newStatus = "in-progress"
-          }
-
-          return {
-            ...goal,
-            milestones: updatedMilestones,
-            progress: newProgress,
-            completedSubGoals: completedMilestones,
-            status: newStatus,
-          }
-        }
-      }
-      return goal
-    })
-
-    setUserGoals(updatedGoals)
-    localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+  const markMilestoneComplete = async (goalId: number, milestoneIndex: number) => {
+    try {
+      await dataManager.markMilestoneComplete(goalId, milestoneIndex)
+      await refreshGoals()
+    } catch (error) {
+      console.error("Error completing milestone:", error)
+    }
   }
 
-  // Function to undo milestone completion
-  const undoMilestoneComplete = (goalId: number, milestoneIndex: number) => {
-    const updatedGoals = userGoals.map((goal) => {
-      if (goal.id === goalId) {
-        const updatedMilestones = [...goal.milestones]
-        const milestone = updatedMilestones[milestoneIndex]
-
-        if (milestone.status === "completed") {
-          // Mark as in-progress
-          updatedMilestones[milestoneIndex] = {
-            ...milestone,
-            status: "in-progress",
-            progress: 50,
-          }
-
-          // Update next milestone back to pending if it was auto-started
-          if (milestoneIndex + 1 < updatedMilestones.length) {
-            const nextMilestone = updatedMilestones[milestoneIndex + 1]
-            if (nextMilestone.status === "in-progress" && nextMilestone.progress === 10) {
-              updatedMilestones[milestoneIndex + 1] = {
-                ...nextMilestone,
-                status: "pending",
-                progress: 0,
-              }
-            }
-          }
-
-          // Calculate new overall progress
-          const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
-          const newProgress = Math.round((completedMilestones / updatedMilestones.length) * 100)
-
-          return {
-            ...goal,
-            milestones: updatedMilestones,
-            progress: newProgress,
-            completedSubGoals: completedMilestones,
-            status: "in-progress",
-          }
-        }
-      }
-      return goal
-    })
-
-    setUserGoals(updatedGoals)
-    localStorage.setItem("userGoals", JSON.stringify(updatedGoals))
+  const undoMilestoneComplete = async (goalId: number, milestoneIndex: number) => {
+    try {
+      await dataManager.undoMilestoneComplete(goalId, milestoneIndex)
+      await refreshGoals()
+    } catch (error) {
+      console.error("Error undoing milestone:", error)
+    }
   }
 
   // Fallback goals for demo purposes
@@ -256,7 +153,7 @@ export default function Timeline() {
   // Generate progress data from user goals
   const generateProgressData = () => {
     // If no user goals, return empty data
-    if (userGoals.length === 0) {
+    if (!userGoals || userGoals.length === 0) {
       return [
         { week: "Week 1", progress: 0 },
         { week: "Week 2", progress: 0 },
@@ -310,7 +207,7 @@ export default function Timeline() {
   const progressData = generateProgressData()
 
   // Get current goal
-  const currentGoal = userGoals.find((goal) => goal.id === selectedGoalId)
+  const currentGoal = userGoals?.find((goal) => goal.id === selectedGoalId)
 
   // Use fallback if no user goals
   const displayGoal = currentGoal || fallbackGoals.business
@@ -341,6 +238,39 @@ export default function Timeline() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+        <SiteHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400 mx-auto mb-4"></div>
+            <p className="text-stone-600 font-light">Loading your timeline...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+        <SiteHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <p className="text-red-600 mb-4">Error loading timeline: {error.message}</p>
+            <Button onClick={refreshGoals} className="bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
       <SiteHeader />
@@ -353,7 +283,7 @@ export default function Timeline() {
         />
 
         {/* Goal Selector */}
-        {userGoals.length > 0 && (
+        {userGoals && userGoals.length > 0 && (
           <div className="mb-8">
             <div className="flex gap-4 flex-wrap">
               {userGoals.map((goal) => (
@@ -375,7 +305,7 @@ export default function Timeline() {
         )}
 
         {/* No goals message */}
-        {userGoals.length === 0 && (
+        {(!userGoals || userGoals.length === 0) && (
           <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-xl">
             <div className="text-center">
               <Target className="h-12 w-12 text-amber-500 mx-auto mb-4" />

@@ -1,9 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import { Moon, Menu, X } from "lucide-react"
+import { Moon, Menu, X, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useAuth } from "@/contexts/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface SiteHeaderProps {
   variant?: "default" | "landing"
@@ -11,8 +20,13 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, signOut } = useAuth()
 
   const isLanding = variant === "landing"
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
 
   return (
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
@@ -45,14 +59,26 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 </a>
               </div>
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden">
-                  Sign In
-                </Button>
-                <Link href="/dashboard">
-                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
-                    Begin Your Journey
-                  </Button>
-                </Link>
+                {user ? (
+                  <Link href="/dashboard">
+                    <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                      Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/auth/signin">
+                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/signup">
+                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </>
           ) : (
@@ -80,9 +106,28 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               </div>
 
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-stone-600 hover:text-stone-800 hidden">
-                  Account
-                </Button>
+                {user && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800 rounded-full">
+                        <User className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>
+                        <div className="flex flex-col">
+                          <span>My Account</span>
+                          <span className="text-xs text-stone-500 font-light">{user.email}</span>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleSignOut} className="text-rose-500 cursor-pointer">
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Link href="/create-goal">
                   <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6 hidden md:flex">
                     New Goal
@@ -134,11 +179,26 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   Pricing
                 </a>
                 <div className="pt-2 border-t border-stone-100">
-                  <Link href="/dashboard">
-                    <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
-                      Begin Your Journey
-                    </Button>
-                  </Link>
+                  {user ? (
+                    <Link href="/dashboard">
+                      <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                        Dashboard
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link href="/auth/signin">
+                        <Button className="w-full mb-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-full">
+                          Sign In
+                        </Button>
+                      </Link>
+                      <Link href="/auth/signup">
+                        <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                          Sign Up
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </>
             ) : (
@@ -189,6 +249,17 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 <div className="pt-2 border-t border-stone-100">
                   <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">New Goal</Button>
                 </div>
+                {user && (
+                  <div className="pt-2 border-t border-stone-100">
+                    <Button
+                      onClick={handleSignOut}
+                      className="w-full bg-white hover:bg-stone-50 text-rose-500 border border-stone-200 rounded-full"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </nav>
