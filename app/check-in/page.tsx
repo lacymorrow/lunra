@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, TrendingUp, CheckCircle, Heart, Sparkles } from "lucide-react"
+import { TrendingUp, CheckCircle, Heart, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useChat } from "ai/react"
-import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -100,8 +99,6 @@ export default function CheckIn() {
   if (showAICoach) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-        <SiteHeader />
-
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="mb-12">
             <DashboardHeader
@@ -283,8 +280,6 @@ export default function CheckIn() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      <SiteHeader />
-
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-12">
