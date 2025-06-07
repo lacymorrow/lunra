@@ -75,7 +75,7 @@ export default function ExploreProcessPage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#faf8f5" }}>
+    <div style={{ backgroundColor: "#faf8f5" }}>
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
