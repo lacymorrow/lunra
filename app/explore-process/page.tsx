@@ -4,8 +4,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { SiteHeader } from "@/components/site-header"
-import SiteFooter from "@/components/site-footer" // Assuming default export
 import { Heart, Brain, CalendarIcon, TrendingUp, Sparkles, ArrowRight, Lightbulb, Smile } from "lucide-react"
 
 const processSteps = [
@@ -72,8 +70,6 @@ const whyLunraWorks = [
 export default function ExploreProcessPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#faf8f5" }}>
-      <SiteHeader variant="landing" />
-
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
@@ -192,8 +188,6 @@ export default function ExploreProcessPage() {
           </p>
         </div>
       </section>
-
-      <SiteFooter />
     </div>
   )
 }
