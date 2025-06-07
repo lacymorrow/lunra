@@ -32,6 +32,71 @@ export interface DatabaseGoalWithMilestones extends DatabaseGoal {
   completed_milestones?: number
 }
 
+// Stripe-related database types
+export interface DatabaseCustomer {
+  id: string // User UUID from auth.users
+  stripe_customer_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DatabaseProduct {
+  id: string // Product ID from Stripe
+  active: boolean | null
+  name: string | null
+  description: string | null
+  image: string | null
+  metadata: Record<string, any> | null // JSONB
+  created_at: string
+  updated_at: string
+}
+
+export interface DatabasePrice {
+  id: string // Price ID from Stripe
+  product_id: string | null
+  active: boolean | null
+  description: string | null
+  unit_amount: number | null // amount in cents/smallest unit
+  currency: string | null
+  type: "one_time" | "recurring" | null
+  interval: "day" | "week" | "month" | "year" | null
+  interval_count: number | null
+  trial_period_days: number | null
+  metadata: Record<string, any> | null // JSONB
+  created_at: string
+  updated_at: string
+}
+
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "past_due"
+  | "unpaid"
+  | "paused"
+
+export interface DatabaseSubscription {
+  id: string // Subscription ID from Stripe
+  user_id: string // User UUID
+  status: SubscriptionStatus | null
+  metadata: Record<string, any> | null // JSONB
+  price_id: string | null
+  quantity: number | null
+  cancel_at_period_end: boolean | null
+  created: string // Stripe timestamp
+  current_period_start: string // Stripe timestamp
+  current_period_end: string // Stripe timestamp
+  ended_at: string | null // Stripe timestamp
+  cancel_at: string | null // Stripe timestamp
+  canceled_at: string | null // Stripe timestamp
+  trial_start: string | null // Stripe timestamp
+  trial_end: string | null // Stripe timestamp
+  created_at: string // Local record created_at
+  updated_at: string // Local record updated_at
+}
+
 // Conversion functions between localStorage format and database format
 export function convertLocalStorageToDatabase(
   localGoal: any,
@@ -83,6 +148,27 @@ export interface Database {
         Row: DatabaseMilestone
         Insert: Omit<DatabaseMilestone, "id" | "created_at" | "updated_at">
         Update: Partial<Omit<DatabaseMilestone, "id" | "goal_id" | "created_at" | "updated_at">>
+      }
+      // Stripe tables
+      customers: {
+        Row: DatabaseCustomer
+        Insert: Omit<DatabaseCustomer, "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseCustomer, "id" | "created_at" | "updated_at">>
+      }
+      products: {
+        Row: DatabaseProduct
+        Insert: Omit<DatabaseProduct, "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseProduct, "id" | "created_at" | "updated_at">>
+      }
+      prices: {
+        Row: DatabasePrice
+        Insert: Omit<DatabasePrice, "created_at" | "updated_at">
+        Update: Partial<Omit<DatabasePrice, "id" | "created_at" | "updated_at">>
+      }
+      subscriptions: {
+        Row: DatabaseSubscription
+        Insert: Omit<DatabaseSubscription, "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseSubscription, "id" | "user_id" | "created_at" | "updated_at">>
       }
     }
     Functions: {
