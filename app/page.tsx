@@ -117,13 +117,15 @@ export default function LandingPage() {
                     <ArrowRight className="ml-3 h-5 w-5" />
                   </Button>
                 </Link>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light hidden"
-                >
-                  Explore the Process
-                </Button>
+                <Link href="/explore-process">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light"
+                  >
+                    Explore the Process
+                  </Button>
+                </Link>
               </div>
               <div className="flex flex-wrap gap-6 text-sm text-stone-500 font-light">
                 <div className="flex items-center">
