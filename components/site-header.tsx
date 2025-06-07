@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Moon, Menu, X, LogOut, User } from "lucide-react"
+import { Moon, Menu, X, LogOut, User, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
@@ -120,6 +120,13 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                           <span className="text-xs text-stone-500 font-light">{user.email}</span>
                         </div>
                       </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/subscription" className="cursor-pointer">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Subscription & Billing
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={handleSignOut} className="text-rose-500 cursor-pointer">
                         <LogOut className="h-4 w-4 mr-2" />

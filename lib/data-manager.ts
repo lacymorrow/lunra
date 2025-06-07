@@ -1,6 +1,7 @@
 import type { SavedGoal } from "@/types"
 import { createGoal, getGoalById, getGoals, updateGoal, deleteGoal } from "@/lib/services/goals"
 import { convertDatabaseToLocalStorage } from "@/types/database"
+import { canCreateGoal, canMakeAIRequest, incrementGoalCount, incrementAIRequestCount } from "@/lib/services/subscriptions"
 
 // Local storage keys
 const GOALS_KEY = "savedGoals"
@@ -73,6 +74,27 @@ export class GoalDataManager {
     return !!this.userId
   }
 
+  // Check if user can create more goals
+  async checkCanCreateGoal(): Promise<boolean> {
+    if (!this.isAuthenticated) {
+      // For unauthenticated users, check local storage limit (3 goals)
+      const localGoals = getLocalGoals()
+      return localGoals.length < 3
+    }
+    
+    return await canCreateGoal(this.userId!)
+  }
+
+  // Check if user can make AI request
+  async checkCanMakeAIRequest(): Promise<boolean> {
+    if (!this.isAuthenticated) {
+      // For unauthenticated users, allow limited AI requests
+      return true // Could implement local tracking if needed
+    }
+    
+    return await canMakeAIRequest(this.userId!)
+  }
+
   // Sync local goals to database when user logs in
   async syncLocalGoalsToDatabase(): Promise<void> {
     if (!this.isAuthenticated) return
@@ -92,6 +114,11 @@ export class GoalDataManager {
       if (!dbGoalTitles.has(localGoal.title)) {
         try {
           await createGoal(localGoal, this.userId!)
+          
+          // Increment goal count for authenticated users
+          if (this.isAuthenticated) {
+            await incrementGoalCount(this.userId!)
+          }
         } catch (error) {
           console.error(`Failed to sync goal "${localGoal.title}":`, error)
         }
@@ -159,9 +186,19 @@ export class GoalDataManager {
   }
 
   async createGoal(goalData: Omit<SavedGoal, "id" | "createdAt">): Promise<SavedGoal> {
+    // Check if user can create more goals
+    const canCreate = await this.checkCanCreateGoal()
+    if (!canCreate) {
+      throw new Error("Goal limit reached. Please upgrade your plan to create more goals.")
+    }
+
     if (this.isAuthenticated) {
       try {
         const dbGoal = await createGoal(goalData, this.userId!)
+        
+        // Increment goal count
+        await incrementGoalCount(this.userId!)
+        
         return convertDatabaseToLocalStorage(dbGoal!)
       } catch (error) {
         console.error("Error creating goal in database:", error)
@@ -267,6 +304,13 @@ export class GoalDataManager {
         return true
       }
       return false
+    }
+  }
+
+  // Method to track AI request usage
+  async trackAIRequest(): Promise<void> {
+    if (this.isAuthenticated) {
+      await incrementAIRequestCount(this.userId!)
     }
   }
 }

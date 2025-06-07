@@ -5,6 +5,7 @@ import "./globals.css"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { AuthProvider } from "@/contexts/auth-context"
+import { SubscriptionProvider } from "@/contexts/subscription-context"
 import { GoalDataProvider } from "@/contexts/goal-data-context"
 import { Toaster } from "@/components/ui/toaster"
 import { usePathname } from "next/navigation"
@@ -19,14 +20,16 @@ export default function ClientLayout({
 
   return (
     <AuthProvider>
-      <GoalDataProvider>
-        <div className="relative flex min-h-screen flex-col">
-          <SiteHeader variant={isLandingPage ? "landing" : "default"} />
-          <div className="flex-1">{children}</div>
-          <SiteFooter />
-        </div>
-        <Toaster />
-      </GoalDataProvider>
+      <SubscriptionProvider>
+        <GoalDataProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <SiteHeader variant={isLandingPage ? "landing" : "default"} />
+            <div className="flex-1">{children}</div>
+            <SiteFooter />
+          </div>
+          <Toaster />
+        </GoalDataProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   )
 }

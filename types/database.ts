@@ -25,6 +25,33 @@ export interface DatabaseMilestone {
   updated_at: string
 }
 
+// New subscription types for Stripe integration
+export interface DatabaseSubscription {
+  id: string
+  user_id: string
+  stripe_subscription_id: string | null
+  stripe_customer_id: string | null
+  plan_type: "seedling" | "bloom" | "garden"
+  status: "active" | "canceled" | "past_due" | "unpaid" | "incomplete"
+  current_period_start: string | null
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface DatabaseUsageMetrics {
+  id: string
+  user_id: string
+  goals_created: number
+  goals_limit: number
+  ai_requests_count: number
+  ai_requests_limit: number
+  last_reset_date: string
+  created_at: string
+  updated_at: string
+}
+
 // Extended type that includes milestone data
 export interface DatabaseGoalWithMilestones extends DatabaseGoal {
   milestones: DatabaseMilestone[]
@@ -83,6 +110,16 @@ export interface Database {
         Row: DatabaseMilestone
         Insert: Omit<DatabaseMilestone, "id" | "created_at" | "updated_at">
         Update: Partial<Omit<DatabaseMilestone, "id" | "goal_id" | "created_at" | "updated_at">>
+      }
+      subscriptions: {
+        Row: DatabaseSubscription
+        Insert: Omit<DatabaseSubscription, "id" | "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseSubscription, "id" | "user_id" | "created_at" | "updated_at">>
+      }
+      usage_metrics: {
+        Row: DatabaseUsageMetrics
+        Insert: Omit<DatabaseUsageMetrics, "id" | "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseUsageMetrics, "id" | "user_id" | "created_at" | "updated_at">>
       }
     }
     Functions: {
