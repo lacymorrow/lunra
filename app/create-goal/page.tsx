@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Sparkles, Heart, Target, Calendar, Brain } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function CreateGoal() {
@@ -39,6 +40,8 @@ export default function CreateGoal() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+      <SiteHeader />
+
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
         <DashboardHeader
