@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect } from "react" // Import useEffect
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -68,6 +69,11 @@ const whyLunraWorks = [
 ]
 
 export default function ExploreProcessPage() {
+  // Scroll to top on component mount
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#faf8f5" }}>
       {/* Hero Section */}
