@@ -12,27 +12,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Define public routes that don't require authentication
-    const publicRoutes = [
-      "/",
-      "/auth/signin",
-      "/auth/signup",
-      "/auth/forgot-password",
-      "/auth/update-password",
-      "/dashboard", // Allow dashboard access for demo mode
-      "/create-goal", // Allow goal creation for demo mode
-      "/goal/new/breakdown", // Allow goal breakdown for demo mode
-      "/timeline", // Allow timeline viewing for demo mode
-      "/calendar", // Allow calendar viewing for demo mode
-      "/check-in", // Allow check-ins for demo mode
-      "/analytics", // Allow analytics viewing for demo mode
-    ]
-
+    // Skip auth check for public routes
+    const publicRoutes = ["/", "/auth/signin", "/auth/signup", "/auth/forgot-password", "/auth/update-password"]
     if (publicRoutes.includes(pathname)) {
       return
     }
 
-    // For other routes, redirect to sign in if not authenticated
+    // If not loading and no user, redirect to sign in
     if (!isLoading && !user) {
       router.push("/auth/signin")
     }

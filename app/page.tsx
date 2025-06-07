@@ -18,8 +18,6 @@ import {
   Heart,
 } from "lucide-react"
 import Link from "next/link"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
 
 export default function LandingPage() {
   const features = [
@@ -86,9 +84,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      {/* Navigation */}
-      <SiteHeader variant="landing" />
-
       {/* Hero Section */}
       <section className="pt-20 pb-20 px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
@@ -456,9 +451,6 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-
-      {/* Footer */}
-      <SiteFooter />
     </div>
   )
 }
