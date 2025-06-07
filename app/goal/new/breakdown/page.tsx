@@ -375,36 +375,43 @@ export default function GoalBreakdown() {
 
   // Initialize the conversation when goal is loaded
   useEffect(() => {
-    const storedGoal = localStorage.getItem("newGoal")
-    if (storedGoal && !hasInitialized) {
-      try {
-        const parsedGoal = JSON.parse(storedGoal)
-        setGoal(parsedGoal)
+    if (hasInitialized || !append) {
+      // If already initialized or append is not ready, do nothing.
+      return
+    }
 
-        // Create initial prompt that asks for ONE question
+    const storedGoalData = localStorage.getItem("newGoal")
+
+    if (storedGoalData) {
+      try {
+        const parsedGoal = JSON.parse(storedGoalData) as Goal
+        setGoal(parsedGoal) // Update goal state
+
         const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${
           parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""
         } ${
           parsedGoal.timeline ? `I want to achieve this in: ${parsedGoal.timeline}` : ""
         }. Please ask me ONE specific, personalized question to help break this down into concrete, manageable sub-goals. Start with understanding my experience level or current situation with this type of goal.`
 
-        console.log("Sending initial prompt:", initialPrompt)
-
-        // Send the initial message to start the conversation
-        setTimeout(() => {
-          append({
-            role: "user",
-            content: initialPrompt,
-          })
-        }, 1000)
-
-        setHasInitialized(true)
-      } catch (error) {
-        console.error("Error parsing stored goal:", error)
-        setError("Failed to load your goal. Please try creating a new goal.")
+        console.log("Sending initial prompt for stored goal:", initialPrompt)
+        append({
+          role: "user",
+          content: initialPrompt,
+        })
+        setHasInitialized(true) // Mark as initialized
+      } catch (e) {
+        console.error("Error initializing goal chat:", e)
+        setError("Failed to load your goal data. Please ensure it's correctly saved and try again.")
+        setHasInitialized(true) // Mark as initialized even on error to prevent loops
       }
+    } else {
+      // No goal data found in localStorage.
+      console.log("No newGoal found in localStorage. Marking as initialized.")
+      // Mark as initialized to prevent this effect from re-running unnecessarily if append's identity changes.
+      // The UI should handle the case where `goal` is null.
+      setHasInitialized(true)
     }
-  }, [append, hasInitialized])
+  }, [hasInitialized, append])
 
   // Debug: Log messages changes
   useEffect(() => {
@@ -476,21 +483,13 @@ export default function GoalBreakdown() {
                         <Button
                           onClick={() => {
                             setError(null)
-                            setHasInitialized(false)
                             setQuestionCount(0)
-                            // Retry initialization
-                            setTimeout(() => {
-                              const storedGoal = localStorage.getItem("newGoal")
-                              if (storedGoal) {
-                                const parsedGoal = JSON.parse(storedGoal)
-                                const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". Please ask me ONE specific question to help break this down.`
-                                append({
-                                  role: "user",
-                                  content: initialPrompt,
-                                })
-                                setHasInitialized(true)
-                              }
-                            }, 500)
+                            setSubGoals([])
+                            setAllGeneratedGoals([])
+                            setIsCreatingMultiple(false)
+                            setParentGoalTitle("")
+                            // Reset hasInitialized to false to allow the main useEffect to re-attempt initialization.
+                            setHasInitialized(false)
                           }}
                           className="mt-3 text-sm bg-red-100 hover:bg-red-200 text-red-800"
                           size="sm"
