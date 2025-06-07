@@ -34,6 +34,17 @@ export async function POST(req: Request) {
       throw new Error("Failed to create Stripe customer.")
     }
 
+    // TODO: Enhance idempotency for database insertion.
+    // Currently, if this API is called multiple times for the same user *after* Stripe customer creation
+    // but *before* or *during* a failed DB insert, it could lead to issues or orphaned Stripe customers
+    // if not handled carefully. A check could be added here:
+    // 1. Query `customers` table for `userId`.
+    // 2. If exists, ensure `stripe_customer_id` matches `customer.id` or handle discrepancy.
+    // 3. If not exists, proceed with insert.
+    // However, given the current flow (called once after Supabase signup), the primary key constraint
+    // on `customers.id` (being user_id) prevents duplicate DB entries for the same user.
+    // The main risk is an orphaned Stripe customer if the DB insert fails consistently.
+
     // 2. Store the Stripe customer ID in your Supabase `customers` table
     const { error: dbError } = await supabase().from("customers").insert({
       id: userId, // This is the Supabase user ID
