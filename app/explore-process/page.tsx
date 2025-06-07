@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect } from "react" // Import useEffect
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -69,12 +69,14 @@ const whyLunraWorks = [
 ]
 
 export default function ExploreProcessPage() {
-  // Scroll to top on component mount
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
   return (
+    // Removed 'min-h-screen' and 'flex flex-col' from this root div.
+    // ClientLayout should provide the overall page structure.
+    // The page-specific background color is maintained.
     <div style={{ backgroundColor: "#faf8f5" }}>
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 text-center relative overflow-hidden">
