@@ -1,14 +1,33 @@
 import type React from "react"
-import { Inter } from "next/font/google"
-import ClientLayout from "./client-layout" // Changed from { ClientLayout } to ClientLayout
+import type { Metadata } from "next"
+import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
+import { AuthProvider } from "@/contexts/auth-context"
+import { GoalDataProvider } from "@/contexts/goal-data-context"
+import { AuthGuard } from "@/components/auth-guard"
 
-const inter = Inter({ subsets: ["latin"] })
+// Load Inter font for body text
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600"],
+})
 
-export const metadata = {
-  title: "Goal Planning App",
-  description: "Plan and track your goals with ease",
-    generator: 'v0.dev'
+// Load Playfair Display as our serif font
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700"],
+})
+
+// Update the metadata title and description
+export const metadata: Metadata = {
+  title: "lunra - AI-Powered Goal Planning",
+  description:
+    "Turn your dreams into achievable plans with AI-powered goal breakdown, personalized coaching, and progress tracking.",
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -17,9 +36,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
+        <AuthProvider>
+          <GoalDataProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </GoalDataProvider>
+        </AuthProvider>
       </body>
     </html>
   )
