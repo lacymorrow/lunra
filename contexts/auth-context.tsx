@@ -66,6 +66,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     })
+
+    if (error) {
+      return { data, error }
+    }
+
+    // If Supabase user created successfully, create Stripe customer
+    if (data.user) {
+      try {
+        // Assuming user's full name might not be available at signup directly from email/password
+        // You might want to collect it in your form and pass it here if needed by Stripe
+        const response = await fetch("/api/create-stripe-customer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: data.user.id,
+            email: data.user.email,
+            // name: data.user.user_metadata?.full_name || '', // Example if you store name in metadata
+          }),
+        })
+
+        if (!response.ok) {
+          const stripeError = await response.json()
+          console.error("Failed to create Stripe customer:", stripeError.error)
+          // Decide on error handling:
+          // - Log and continue (user exists in Supabase, Stripe customer can be created later/manually)
+          // - Inform user (though signup itself was successful for your app)
+          // - Potentially, if critical, you could try to delete the Supabase user, but this adds complexity.
+          // For now, we'll log the error. The user is signed up in Supabase.
+        } else {
+          const stripeResult = await response.json()
+          console.log("Stripe customer created:", stripeResult.stripeCustomerId)
+        }
+      } catch (fetchError) {
+        console.error("Error calling /api/create-stripe-customer:", fetchError)
+      }
+    }
+
     return { data, error }
   }
 
