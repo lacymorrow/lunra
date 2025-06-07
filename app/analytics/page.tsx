@@ -20,6 +20,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from "recharts"
+import { SiteHeader } from "@/components/site-header"
 import { useEffect, useState } from "react"
 import type { SavedGoal } from "@/types"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -186,6 +187,8 @@ export default function Analytics() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+      <SiteHeader />
+
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="mb-12">
