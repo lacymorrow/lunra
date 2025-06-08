@@ -1,19 +1,25 @@
+import { supabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
-import { supabase } from "@/lib/supabase" // Uses server client
 
 // Ensure STRIPE_SECRET_KEY is available
-const stripeSecretKey = process.env.STRIPE
-if (!stripeSecretKey) {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+
+let stripe: Stripe | null = null
+
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: "2024-04-10",
+  })
+} else {
   console.error("Stripe secret key is not set.")
-  // Optionally, throw an error or handle this case as critical
 }
 
-const stripe = new Stripe(stripeSecretKey as string, {
-  apiVersion: "2024-04-10", // Use the latest API version
-})
-
 export async function POST(req: Request) {
+  if (!stripeSecretKey || !stripe) {
+    return NextResponse.json({ error: "Stripe configuration missing." }, { status: 500 })
+  }
+
   try {
     const { userId, email, name } = await req.json()
 
@@ -21,12 +27,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User ID and email are required" }, { status: 400 })
     }
 
-    // 1. Create a new customer in Stripe
+    // Check if customer already exists
+    const { data: existingCustomer } = await supabase()
+      .from("customers")
+      .select("stripe_customer_id")
+      .eq("id", userId)
+      .single()
+
+    if (existingCustomer?.stripe_customer_id) {
+      return NextResponse.json({
+        message: "Stripe customer already exists",
+        stripeCustomerId: existingCustomer.stripe_customer_id,
+      })
+    }
+
+    // Create a new customer in Stripe
     const customer = await stripe.customers.create({
       email: email,
-      name: name, // Optional: pass user's name if available
+      name: name,
       metadata: {
-        supabase_user_id: userId, // Link Stripe customer to Supabase user
+        supabase_user_id: userId,
       },
     })
 
@@ -34,27 +54,20 @@ export async function POST(req: Request) {
       throw new Error("Failed to create Stripe customer.")
     }
 
-    // TODO: Enhance idempotency for database insertion.
-    // Currently, if this API is called multiple times for the same user *after* Stripe customer creation
-    // but *before* or *during* a failed DB insert, it could lead to issues or orphaned Stripe customers
-    // if not handled carefully. A check could be added here:
-    // 1. Query `customers` table for `userId`.
-    // 2. If exists, ensure `stripe_customer_id` matches `customer.id` or handle discrepancy.
-    // 3. If not exists, proceed with insert.
-    // However, given the current flow (called once after Supabase signup), the primary key constraint
-    // on `customers.id` (being user_id) prevents duplicate DB entries for the same user.
-    // The main risk is an orphaned Stripe customer if the DB insert fails consistently.
-
-    // 2. Store the Stripe customer ID in your Supabase `customers` table
+    // Store the Stripe customer ID in Supabase
     const { error: dbError } = await supabase().from("customers").insert({
-      id: userId, // This is the Supabase user ID
+      id: userId,
       stripe_customer_id: customer.id,
     })
 
     if (dbError) {
       console.error("Error saving Stripe customer ID to Supabase:", dbError)
-      // Potentially, you might want to delete the Stripe customer if DB insert fails
-      // await stripe.customers.del(customer.id); // Or handle this with a retry mechanism
+      // Clean up the Stripe customer if database insert fails
+      try {
+        await stripe.customers.del(customer.id)
+      } catch (cleanupError) {
+        console.error("Failed to cleanup Stripe customer:", cleanupError)
+      }
       throw new Error(`Failed to save Stripe customer ID to database: ${dbError.message}`)
     }
 

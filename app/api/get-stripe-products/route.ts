@@ -2,18 +2,20 @@ import { NextResponse } from "next/server"
 import Stripe from "stripe"
 
 // Ensure STRIPE_SECRET_KEY is available
-const stripeSecretKey = process.env.STRIPE
-if (!stripeSecretKey) {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+
+let stripe: Stripe | null = null
+
+if (stripeSecretKey) {
+  stripe = new Stripe(stripeSecretKey, {
+    apiVersion: "2024-04-10",
+  })
+} else {
   console.error("Stripe secret key is not set for /api/get-stripe-products.")
-  // This API route will not function without the secret key.
 }
 
-const stripe = new Stripe(stripeSecretKey as string, {
-  apiVersion: "2024-04-10",
-})
-
 export async function GET() {
-  if (!stripeSecretKey) {
+  if (!stripeSecretKey || !stripe) {
     return NextResponse.json({ error: "Stripe configuration missing." }, { status: 500 })
   }
 

@@ -1,3 +1,8 @@
+-- Drop existing functions if they exist
+DROP FUNCTION IF EXISTS get_user_goals_with_stats(uuid);
+DROP FUNCTION IF EXISTS update_goal_progress(uuid);
+DROP FUNCTION IF EXISTS trigger_update_goal_progress();
+
 -- Function to get user's goals with milestone counts
 CREATE OR REPLACE FUNCTION get_user_goals_with_stats(user_uuid UUID)
 RETURNS TABLE (
@@ -17,7 +22,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT 
+  SELECT
     g.id,
     g.title,
     g.description,
@@ -34,7 +39,7 @@ BEGIN
   FROM goals g
   LEFT JOIN milestones m ON g.id = m.goal_id
   WHERE g.user_id = user_uuid
-  GROUP BY g.id, g.title, g.description, g.timeline, g.progress, g.status, 
+  GROUP BY g.id, g.title, g.description, g.timeline, g.progress, g.status,
            g.due_date, g.sub_goals, g.completed_sub_goals, g.created_at, g.updated_at
   ORDER BY g.created_at DESC;
 END;
@@ -50,20 +55,20 @@ DECLARE
   new_status TEXT;
 BEGIN
   -- Count total and completed milestones
-  SELECT 
+  SELECT
     COUNT(*),
     COUNT(CASE WHEN status = 'completed' THEN 1 END)
   INTO total_milestones, completed_milestones
-  FROM milestones 
+  FROM milestones
   WHERE goal_id = goal_uuid;
-  
+
   -- Calculate new progress
   IF total_milestones > 0 THEN
     new_progress := ROUND((completed_milestones::DECIMAL / total_milestones) * 100);
   ELSE
     new_progress := 0;
   END IF;
-  
+
   -- Determine new status
   IF new_progress = 100 THEN
     new_status := 'completed';
@@ -74,10 +79,10 @@ BEGIN
   ELSE
     new_status := 'behind';
   END IF;
-  
+
   -- Update the goal
-  UPDATE goals 
-  SET 
+  UPDATE goals
+  SET
     progress = new_progress,
     status = new_status,
     completed_sub_goals = completed_milestones,
