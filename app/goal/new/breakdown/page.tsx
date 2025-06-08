@@ -594,10 +594,88 @@ export default function GoalBreakdown() {
                 </Collapsible>
               </div>
             </Card>
+          </div>
+
+          {/* Goal Summary & Progress */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="border-0 rounded-3xl shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-serif text-stone-800">Your Goal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-serif text-xl text-stone-800 mb-2">{goal.title}</h3>
+                    {goal.description && <p className="text-stone-600 text-sm mb-3 font-light">{goal.description}</p>}
+                    {goal.timeline && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 rounded-full">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {goal.timeline}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 rounded-3xl shadow-md">
+              <CardHeader>
+                <CardTitle className="text-xl font-serif text-stone-800">Breakdown Process</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-sage-500 mr-3" />
+                    <span className="text-sm text-stone-700 font-light">Goal defined</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
+                        questionCount > 0 ? "bg-sage-500" : "bg-stone-300"
+                      }`}
+                    >
+                      {questionCount > 0 && <CheckCircle className="h-3 w-3 text-white" />}
+                    </div>
+                    <span className="text-sm text-stone-700 font-light">
+                      AI questions answered ({questionCount}/3-5)
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
+                        subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
+                      }`}
+                    >
+                      {(subGoals.length > 0 || allGeneratedGoals.length > 0) && (
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      )}
+                    </div>
+                    <span className="text-sm text-stone-700 font-light">
+                      Sub-goals generated{" "}
+                      {subGoals.length > 0
+                        ? `(${subGoals.length})`
+                        : allGeneratedGoals.length > 0
+                          ? `(${allGeneratedGoals.length} timelines)`
+                          : ""}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
+                        hasSaved ? "bg-sage-500" : "bg-stone-300"
+                      }`}
+                    >
+                      {hasSaved && <CheckCircle className="h-3 w-3 text-white" />}
+                    </div>
+                    <span className="text-sm text-stone-700 font-light">Goal saved</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Generated Sub-Goals */}
             {subGoals.length > 0 && (
-              <Card className="mt-6 border-0 rounded-3xl shadow-md">
+              <Card className="border-0 rounded-3xl shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                     <Target className="h-5 w-5 mr-2 text-sage-500" />
@@ -675,7 +753,7 @@ export default function GoalBreakdown() {
 
             {/* Multiple Timelines Display */}
             {isCreatingMultiple && allGeneratedGoals.length > 0 && (
-              <Card className="mt-6 border-0 rounded-3xl shadow-md">
+              <Card className="border-0 rounded-3xl shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                     <Target className="h-5 w-5 mr-2 text-sage-500" />
@@ -729,84 +807,6 @@ export default function GoalBreakdown() {
                 </CardContent>
               </Card>
             )}
-          </div>
-
-          {/* Goal Summary & Progress */}
-          <div className="space-y-6">
-            <Card className="border-0 rounded-3xl shadow-md">
-              <CardHeader>
-                <CardTitle className="text-xl font-serif text-stone-800">Your Goal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-serif text-xl text-stone-800 mb-2">{goal.title}</h3>
-                    {goal.description && <p className="text-stone-600 text-sm mb-3 font-light">{goal.description}</p>}
-                    {goal.timeline && (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 rounded-full">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {goal.timeline}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 rounded-3xl shadow-md">
-              <CardHeader>
-                <CardTitle className="text-xl font-serif text-stone-800">Breakdown Process</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-sage-500 mr-3" />
-                    <span className="text-sm text-stone-700 font-light">Goal defined</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        questionCount > 0 ? "bg-sage-500" : "bg-stone-300"
-                      }`}
-                    >
-                      {questionCount > 0 && <CheckCircle className="h-3 w-3 text-white" />}
-                    </div>
-                    <span className="text-sm text-stone-700 font-light">
-                      AI questions answered ({questionCount}/3-5)
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
-                      }`}
-                    >
-                      {(subGoals.length > 0 || allGeneratedGoals.length > 0) && (
-                        <CheckCircle className="h-3 w-3 text-white" />
-                      )}
-                    </div>
-                    <span className="text-sm text-stone-700 font-light">
-                      Sub-goals generated{" "}
-                      {subGoals.length > 0
-                        ? `(${subGoals.length})`
-                        : allGeneratedGoals.length > 0
-                          ? `(${allGeneratedGoals.length} timelines)`
-                          : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        hasSaved ? "bg-sage-500" : "bg-stone-300"
-                      }`}
-                    >
-                      {hasSaved && <CheckCircle className="h-3 w-3 text-white" />}
-                    </div>
-                    <span className="text-sm text-stone-700 font-light">Goal saved</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <div className="bg-gradient-to-r from-amber-300 to-sage-300 p-6 rounded-3xl shadow-md text-white">
               <div className="flex items-start mb-4">
