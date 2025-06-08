@@ -451,7 +451,7 @@ export default function GoalBreakdown() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AI Chat Interface */}
           <div className="lg:col-span-2">
-            <Card className="border-0 rounded-3xl shadow-md">
+            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[80vh] min-h-[450px]">
               <CardHeader>
                 <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                   <Heart className="h-5 w-5 mr-2 text-rose-400" />
@@ -464,10 +464,10 @@ export default function GoalBreakdown() {
                   )}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col flex-grow overflow-hidden p-6">
                 {/* Error Display */}
                 {error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex-shrink-0">
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                       <div>
@@ -502,7 +502,7 @@ export default function GoalBreakdown() {
                   </div>
                 )}
 
-                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                <div className="flex-grow space-y-4 mb-4 overflow-y-auto pr-2">
                   {messages.length === 0 && !isLoading && !error && (
                     <div className="text-center py-8">
                       <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -556,7 +556,7 @@ export default function GoalBreakdown() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex gap-2">
+                <form onSubmit={handleSubmit} className="flex gap-2 pt-4 border-t border-stone-200 flex-shrink-0">
                   <Input
                     value={input}
                     onChange={handleInputChange}
@@ -574,7 +574,7 @@ export default function GoalBreakdown() {
                 </form>
 
                 {/* Debug info - remove in production */}
-                <Collapsible defaultOpen={false}>
+                <Collapsible defaultOpen={false} className="mt-2 flex-shrink-0">
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="mt-4 text-xs text-gray-600 hover:text-gray-800">
                       Show Debug Info
