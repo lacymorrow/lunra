@@ -365,22 +365,6 @@ export default function LandingPage() {
                 cta: "Start Blooming",
                 popular: true,
               },
-              {
-                name: "Garden",
-                price: "$19",
-                period: "per month",
-                description: "For teams cultivating shared visions together",
-                features: [
-                  "everything in Bloom",
-                  "collaborative spaces",
-                  "team insights",
-                  "shared celebrations",
-                  "custom integrations",
-                  "dedicated support",
-                ],
-                cta: "Grow Together",
-                popular: false,
-              },
             ].map((plan, index) => (
               <Card
                 key={index}
