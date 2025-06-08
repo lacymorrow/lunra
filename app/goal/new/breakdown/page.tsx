@@ -451,7 +451,9 @@ export default function GoalBreakdown() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AI Chat Interface */}
           <div className="lg:col-span-2">
-            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[80vh] min-h-[450px]">
+            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[calc(100vh-18rem)]">
+              {" "}
+              {/* Added flex, flex-col, and max-h */}
               <CardHeader>
                 <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                   <Heart className="h-5 w-5 mr-2 text-rose-400" />
@@ -464,10 +466,14 @@ export default function GoalBreakdown() {
                   )}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col flex-grow overflow-hidden p-6">
+              <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
+                {" "}
+                {/* Added flex, flex-col, flex-grow, overflow-hidden, p-0 */}
                 {/* Error Display */}
                 {error && (
-                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex-shrink-0">
+                  <div className="p-4 bg-red-50 border-b border-red-200">
+                    {" "}
+                    {/* Ensure padding, removed mb-6 */}
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                       <div>
@@ -501,8 +507,9 @@ export default function GoalBreakdown() {
                     </div>
                   </div>
                 )}
-
-                <div className="flex-grow space-y-4 mb-4 overflow-y-auto pr-2">
+                <div className="flex-grow space-y-4 overflow-y-auto p-6">
+                  {" "}
+                  {/* Added flex-grow, p-6. Removed mb-6, max-h-96 */}
                   {messages.length === 0 && !isLoading && !error && (
                     <div className="text-center py-8">
                       <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -511,7 +518,6 @@ export default function GoalBreakdown() {
                       <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
                     </div>
                   )}
-
                   {messages.map((message, index) => (
                     <div
                       key={index}
@@ -536,7 +542,6 @@ export default function GoalBreakdown() {
                       </div>
                     </div>
                   ))}
-
                   {isLoading && (
                     <div className="bg-rose-50 border border-rose-100 mr-8 p-6 rounded-xl">
                       <div className="flex items-start">
@@ -555,8 +560,9 @@ export default function GoalBreakdown() {
                   )}
                   <div ref={messagesEndRef} />
                 </div>
-
-                <form onSubmit={handleSubmit} className="flex gap-2 pt-4 border-t border-stone-200 flex-shrink-0">
+                <form onSubmit={handleSubmit} className="flex gap-2 p-6 border-t border-stone-200">
+                  {" "}
+                  {/* Added p-6, border-t */}
                   <Input
                     value={input}
                     onChange={handleInputChange}
@@ -572,11 +578,12 @@ export default function GoalBreakdown() {
                     Send
                   </Button>
                 </form>
-
                 {/* Debug info - remove in production */}
-                <Collapsible defaultOpen={false} className="mt-2 flex-shrink-0">
+                <Collapsible defaultOpen={false} className="p-6 border-t border-stone-200">
+                  {" "}
+                  {/* Added p-6, border-t. Removed mt-4 */}
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="mt-4 text-xs text-gray-600 hover:text-gray-800">
+                    <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-800">
                       Show Debug Info
                     </Button>
                   </CollapsibleTrigger>
@@ -592,141 +599,6 @@ export default function GoalBreakdown() {
                 </Collapsible>
               </CardContent>
             </Card>
-
-            {/* Generated Sub-Goals */}
-            {subGoals.length > 0 && (
-              <Card className="mt-6 border-0 rounded-3xl shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
-                    <Target className="h-5 w-5 mr-2 text-sage-500" />
-                    Your Personalized Action Plan
-                  </CardTitle>
-                  <CardDescription className="text-stone-600 font-light">
-                    Based on your answers, here are your specific sub-goals:
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {subGoals.map((subGoal, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start p-4 border border-stone-200 rounded-xl hover:shadow-sm transition-shadow"
-                      >
-                        <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Save Status */}
-                  {hasSaved && (
-                    <div className="mt-4 p-3 bg-sage-50 border border-sage-200 rounded-xl">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-sage-600 mr-2" />
-                        <span className="text-sage-800 text-sm font-medium">Goal saved successfully!</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex gap-3">
-                    <Button
-                      onClick={goToTimeline}
-                      disabled={isSaving}
-                      className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Create Timeline
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={goToDashboard}
-                      disabled={isSaving}
-                      variant="outline"
-                      className="flex-1 rounded-full border-stone-200 text-stone-700 hover:bg-stone-50"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-400 mr-2"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save to Dashboard
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Multiple Timelines Display */}
-            {isCreatingMultiple && allGeneratedGoals.length > 0 && (
-              <Card className="mt-6 border-0 rounded-3xl shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
-                    <Target className="h-5 w-5 mr-2 text-sage-500" />
-                    Your Multiple Timelines
-                  </CardTitle>
-                  <CardDescription className="text-stone-600 font-light">
-                    {parentGoalTitle} broken down into {allGeneratedGoals.length} focused timelines
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {allGeneratedGoals.map((timeline, timelineIndex) => (
-                      <div key={timelineIndex} className="border border-stone-200 rounded-xl p-6">
-                        <h3 className="font-serif text-xl text-stone-800 mb-4">{timeline.title}</h3>
-                        <div className="space-y-3">
-                          {timeline.subGoals.map((subGoal, index) => (
-                            <div
-                              key={index}
-                              className="flex items-start p-4 border border-stone-200 rounded-xl hover:shadow-sm transition-shadow"
-                            >
-                              <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
-                                {index + 1}
-                              </div>
-                              <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 flex gap-3">
-                    <Button
-                      onClick={() => saveMultipleGoalsToApp()}
-                      disabled={isSaving}
-                      className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Saving All Timelines...
-                        </>
-                      ) : (
-                        <>
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Create All Timelines
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Goal Summary & Progress */}
@@ -821,6 +693,149 @@ export default function GoalBreakdown() {
             </div>
           </div>
         </div>
+
+        {/* Generated Sub-Goals */}
+        {subGoals.length > 0 && (
+          <Card className="mt-6 border-0 rounded-3xl shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
+                <Target className="h-5 w-5 mr-2 text-sage-500" />
+                Your Personalized Action Plan
+              </CardTitle>
+              <CardDescription className="text-stone-600 font-light">
+                Based on your answers, here are your specific sub-goals:
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {subGoals.map((subGoal, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start p-4 border border-stone-200 rounded-xl hover:shadow-sm transition-shadow"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Save Status */}
+              {hasSaved && (
+                <div className="mt-4 p-3 bg-sage-50 border border-sage-200 rounded-xl">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-sage-600 mr-2" />
+                    <span className="text-sage-800 text-sm font-medium">Goal saved successfully!</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-3">
+                <Button
+                  onClick={goToTimeline}
+                  disabled={isSaving}
+                  className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Create Timeline
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={goToDashboard}
+                  disabled={isSaving}
+                  variant="outline"
+                  className="flex-1 rounded-full border-stone-200 text-stone-700 hover:bg-stone-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-stone-400 mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save to Dashboard
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Multiple Timelines Display */}
+        {isCreatingMultiple && allGeneratedGoals.length > 0 && (
+          <Card className="mt-6 border-0 rounded-3xl shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
+                <Target className="h-5 w-5 mr-2 text-sage-500" />
+                Your Multiple Timelines
+              </CardTitle>
+              <CardDescription className="text-stone-600 font-light">
+                {parentGoalTitle} broken down into {allGeneratedGoals.length} focused timelines
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {allGeneratedGoals.map((timeline, timelineIndex) => (
+                  <div key={timelineIndex} className="border border-stone-200 rounded-xl p-6">
+                    <h3 className="font-serif text-xl text-stone-800 mb-4">{timeline.title}</h3>
+                    <div className="space-y-3">
+                      {timeline.subGoals.map((subGoal, index) => (
+                        <div
+                          key={index}
+                          className="flex items-start p-4 border border-stone-200 rounded-xl hover:shadow-sm transition-shadow"
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
+                            {index + 1}
+                          </div>
+                          <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <Button
+                  onClick={() => saveMultipleGoalsToApp()}
+                  disabled={isSaving}
+                  className="flex-1 rounded-full bg-rose-400 hover:bg-rose-500 text-white"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving All Timelines...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Create All Timelines
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
+</merged
+                </CardContent>
+              </Card>
+            )}
       </div>
     </div>
   )
