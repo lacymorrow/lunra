@@ -451,8 +451,8 @@ export default function GoalBreakdown() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AI Chat Interface */}
           <div className="lg:col-span-2">
-            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[calc(100vh-18rem)]">
-              <CardHeader>
+            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[calc(100vh-22rem)]">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                   <Heart className="h-5 w-5 mr-2 text-rose-400" />
                   AI Goal Coach
@@ -464,10 +464,11 @@ export default function GoalBreakdown() {
                   )}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col flex-grow overflow-hidden p-0">
+
+              <CardContent className="flex-grow overflow-y-auto p-6 space-y-4">
                 {/* Error Display */}
                 {error && (
-                  <div className="p-4 bg-red-50 border-b border-red-200">
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                       <div>
@@ -501,58 +502,62 @@ export default function GoalBreakdown() {
                     </div>
                   </div>
                 )}
-                <div className="flex-grow space-y-4 overflow-y-auto p-6">
-                  {messages.length === 0 && !isLoading && !error && (
-                    <div className="text-center py-8">
-                      <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Sparkles className="h-6 w-6 text-white" />
-                      </div>
-                      <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
+
+                {messages.length === 0 && !isLoading && !error && (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Sparkles className="h-6 w-6 text-white" />
                     </div>
-                  )}
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`p-6 rounded-xl ${
-                        message.role === "user"
-                          ? "bg-stone-50 border border-stone-100 ml-8"
-                          : "bg-rose-50 border border-rose-100 mr-8"
-                      }`}
-                    >
-                      <div className="flex items-start">
-                        {message.role === "assistant" && (
-                          <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                            <Sparkles className="h-5 w-5 text-white" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium mb-2 text-stone-800">
-                            {message.role === "user" ? "You" : "AI Coach"}
-                          </p>
-                          <p className="text-stone-700 whitespace-pre-wrap font-light">{message.content}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="bg-rose-50 border border-rose-100 mr-8 p-6 rounded-xl">
-                      <div className="flex items-start">
-                        <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mr-4">
+                    <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
+                  </div>
+                )}
+
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`p-6 rounded-xl ${
+                      message.role === "user"
+                        ? "bg-stone-50 border border-stone-100 ml-8"
+                        : "bg-rose-50 border border-rose-100 mr-8"
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      {message.role === "assistant" && (
+                        <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
                           <Sparkles className="h-5 w-5 text-white" />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium mb-2 text-stone-800">AI Coach</p>
-                          <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-rose-400 mr-2"></div>
-                            <p className="text-stone-600 font-light">Thinking thoughtfully...</p>
-                          </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-2 text-stone-800">
+                          {message.role === "user" ? "You" : "AI Coach"}
+                        </p>
+                        <p className="text-stone-700 whitespace-pre-wrap font-light">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div className="bg-rose-50 border border-rose-100 mr-8 p-6 rounded-xl">
+                    <div className="flex items-start">
+                      <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mr-4">
+                        <Sparkles className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-2 text-stone-800">AI Coach</p>
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-rose-400 mr-2"></div>
+                          <p className="text-stone-600 font-light">Thinking thoughtfully...</p>
                         </div>
                       </div>
                     </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-                <form onSubmit={handleSubmit} className="flex gap-2 p-6 border-t border-stone-200">
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </CardContent>
+
+              <div className="p-6 border-t border-stone-200 flex-shrink-0">
+                <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input
                     value={input}
                     onChange={handleInputChange}
@@ -568,8 +573,10 @@ export default function GoalBreakdown() {
                     Send
                   </Button>
                 </form>
-                {/* Debug info - remove in production */}
-                <Collapsible defaultOpen={false} className="p-6 border-t border-stone-200">
+              </div>
+
+              <div className="p-6 pt-0 flex-shrink-0">
+                <Collapsible defaultOpen={false}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-800">
                       Show Debug Info
@@ -585,7 +592,7 @@ export default function GoalBreakdown() {
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
-              </CardContent>
+              </div>
             </Card>
 
             {/* Generated Sub-Goals */}
