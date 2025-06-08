@@ -50,6 +50,10 @@ export default function GoalBreakdown() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, []) // Empty dependency array ensures this runs only once on mount
+
   const [allGeneratedGoals, setAllGeneratedGoals] = useState<
     Array<{
       title: string
