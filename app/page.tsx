@@ -332,7 +332,7 @@ export default function LandingPage() {
               Begin freely, expand when you're ready for deeper support
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {[
               {
                 name: "Seedling",
