@@ -417,7 +417,21 @@ export default function GoalBreakdown() {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
+    // Auto-scroll to bottom when messages change, but with refined conditions
+    if (isLoading) {
+      // If AI is thinking, don't scroll yet. Wait for the message.
+      return
+    }
+
+    if (messages.length >= 2) {
+      // Only start auto-scrolling the chat container to its bottom
+      // once there are at least two messages (e.g., user's initial prompt + AI's first response)
+      // and the AI is not currently loading.
+      scrollToBottom()
+    }
+    // If messages.length is 0 or 1, we don't call scrollToBottom().
+    // This relies on the other useEffect's window.scrollTo(0,0) to keep the page at the top.
+    // The user will see the top of the page and can scroll down to the chat if it's not immediately visible.
   }, [messages, isLoading])
 
   if (!goal) {
