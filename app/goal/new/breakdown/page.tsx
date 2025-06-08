@@ -50,8 +50,20 @@ export default function GoalBreakdown() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
 
+  // Ref for the scrollable chat log container
+  const chatLogContainerRef = useRef<HTMLDivElement>(null)
+  // Ref to scroll to the end of messages
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  // Ref to track if it's the initial loading of messages
+  const isInitialMessagesLoad = useRef(true)
+
   useEffect(() => {
+    // Ensure window is scrolled to top on mount
     window.scrollTo(0, 0)
+    // Ensure chat log container is scrolled to its top on mount
+    if (chatLogContainerRef.current) {
+      chatLogContainerRef.current.scrollTop = 0
+    }
   }, []) // Empty dependency array ensures this runs only once on mount
 
   const [allGeneratedGoals, setAllGeneratedGoals] = useState<
@@ -71,8 +83,6 @@ export default function GoalBreakdown() {
   const [isCreatingMultiple, setIsCreatingMultiple] = useState(false)
   const [parentGoalTitle, setParentGoalTitle] = useState("")
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -85,12 +95,10 @@ export default function GoalBreakdown() {
       console.log("AI Response:", message.content)
       setError(null) // Clear any previous errors
 
-      // Count questions asked (assistant messages that don't contain SUB_GOALS)
       if (message.role === "assistant" && !message.content.includes("SUB_GOALS:")) {
         setQuestionCount((prev) => prev + 1)
       }
 
-      // Parse AI response to extract sub-goals
       if (message.content.includes("SUB_GOALS:")) {
         const goalSection = message.content.split("SUB_GOALS:")[1]
         const goals = goalSection
@@ -151,65 +159,46 @@ export default function GoalBreakdown() {
     },
   })
 
-  // Save goal to localStorage and application state
   const { dataManager, refreshGoals } = useGoalData()
 
   const saveGoalToApp = async () => {
     if (!goal || subGoals.length === 0) return
-
     setIsSaving(true)
+    // ... (rest of saveGoalToApp remains the same)
     try {
       toast({
         title: "Saving your goal...",
         description: "Creating your personalized action plan",
       })
 
-      // Create timeline milestones from sub-goals
       const milestones = subGoals.map((subGoal, index) => {
         let week = index + 1
         let task = subGoal
-
         const weekMatch = subGoal.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
         if (weekMatch) {
           week = Number.parseInt(weekMatch[1], 10)
           task = weekMatch[2].trim()
         }
-
         let maxWeeks = 4
         if (goal.timeline) {
           const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
           const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
-
-          if (monthsMatch) {
-            maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
-          } else if (weeksMatch) {
-            maxWeeks = Number.parseInt(weeksMatch[1], 10)
-          }
+          if (monthsMatch) maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
+          else if (weeksMatch) maxWeeks = Number.parseInt(weeksMatch[1], 10)
         }
-
         week = Math.min(week, maxWeeks)
-
-        return {
-          week: week,
-          task: task,
-          status: index === 0 ? "in-progress" : "pending",
-          progress: index === 0 ? 10 : 0,
-        }
+        return { week, task, status: index === 0 ? "in-progress" : "pending", progress: index === 0 ? 10 : 0 }
       })
 
-      // Calculate due date based on timeline
       const dueDate = new Date()
       if (goal.timeline.toLowerCase().includes("month")) {
-        const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
-        dueDate.setMonth(dueDate.getMonth() + months)
+        dueDate.setMonth(dueDate.getMonth() + Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6"))
       } else if (goal.timeline.toLowerCase().includes("year")) {
-        const years = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1")
-        dueDate.setFullYear(dueDate.getFullYear() + years)
+        dueDate.setFullYear(dueDate.getFullYear() + Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1"))
       } else {
         dueDate.setMonth(dueDate.getMonth() + 6)
       }
 
-      // Create new goal object
       const newGoal: Omit<SavedGoal, "id"> = {
         title: goal.title,
         description: goal.description || "",
@@ -217,70 +206,54 @@ export default function GoalBreakdown() {
         progress: 5,
         status: "in-progress",
         dueDate: dueDate.toISOString().split("T")[0],
-        subGoals: subGoals,
+        subGoals,
         completedSubGoals: 0,
         createdAt: new Date().toISOString(),
-        milestones: milestones,
+        milestones,
       }
 
-      // Save using data manager
       const savedGoal = await dataManager.createGoal(newGoal)
-
-      // Clean up the temporary goal data
       localStorage.removeItem("newGoal")
-
       console.log("Goal saved successfully:", savedGoal)
       setHasSaved(true)
-
       toast({
         title: "Goal saved successfully! 🎉",
         description: "Your timeline has been created and saved to your dashboard",
       })
-
-      // Refresh goals in context
       await refreshGoals()
-
       setTimeout(() => {
         setIsSaving(false)
-        toast({
-          title: "Redirecting to timeline...",
-          description: "Taking you to your personalized timeline view",
-        })
+        toast({ title: "Redirecting to timeline...", description: "Taking you to your personalized timeline view" })
         router.push("/timeline")
       }, 1000)
     } catch (error) {
       console.error("Error saving goal:", error)
       setError("Failed to save goal. Please try again.")
-
       toast({
         title: "Error saving goal",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
-
       setIsSaving(false)
     }
   }
 
   const saveMultipleGoalsToApp = async () => {
     if (!goal || allGeneratedGoals.length === 0) return
-
     setIsSaving(true)
+    // ... (rest of saveMultipleGoalsToApp remains the same)
     try {
       toast({
         title: "Saving your timelines...",
         description: `Creating ${allGeneratedGoals.length} personalized timelines`,
       })
-
       const newGoals: Array<Omit<SavedGoal, "id">> = allGeneratedGoals.map((timeline) => {
         const dueDate = new Date()
         if (goal.timeline.toLowerCase().includes("month")) {
-          const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
-          dueDate.setMonth(dueDate.getMonth() + months)
+          dueDate.setMonth(dueDate.getMonth() + Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6"))
         } else {
           dueDate.setMonth(dueDate.getMonth() + 6)
         }
-
         return {
           title: timeline.title,
           description: timeline.description,
@@ -294,114 +267,77 @@ export default function GoalBreakdown() {
           milestones: timeline.milestones,
         }
       })
-
-      // Save all goals using data manager
       const savedGoals = await Promise.all(newGoals.map((goalData) => dataManager.createGoal(goalData)))
-
       localStorage.removeItem("newGoal")
-
       console.log("Multiple goals saved successfully:", savedGoals)
       setHasSaved(true)
-
       toast({
         title: "Timelines created successfully! 🎉",
         description: `${savedGoals.length} timelines have been saved to your dashboard`,
       })
-
-      // Refresh goals in context
       await refreshGoals()
-
       setTimeout(() => {
         setIsSaving(false)
-        toast({
-          title: "Redirecting to timeline...",
-          description: "Taking you to your personalized timeline view",
-        })
+        toast({ title: "Redirecting to timeline...", description: "Taking you to your personalized timeline view" })
         router.push("/timeline")
       }, 1000)
     } catch (error) {
       console.error("Error saving multiple goals:", error)
       setError("Failed to save goals. Please try again.")
-
       toast({
         title: "Error saving timelines",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
-
       setIsSaving(false)
     }
   }
 
-  // Navigate to timeline with saved goal
   const goToTimeline = () => {
+    // ... (goToTimeline remains the same)
     if (hasSaved) {
-      toast({
-        title: "Redirecting to timeline...",
-        description: "Taking you to your personalized timeline view",
-      })
+      toast({ title: "Redirecting to timeline...", description: "Taking you to your personalized timeline view" })
       router.push("/timeline")
     } else {
-      // Save first, then navigate
       saveGoalToApp().then(() => {
         setTimeout(() => {
-          toast({
-            title: "Redirecting to timeline...",
-            description: "Taking you to your personalized timeline view",
-          })
+          toast({ title: "Redirecting to timeline...", description: "Taking you to your personalized timeline view" })
           router.push("/timeline")
         }, 1500)
       })
     }
   }
 
-  // Navigate to dashboard with saved goal
   const goToDashboard = () => {
+    // ... (goToDashboard remains the same)
     if (hasSaved) {
-      toast({
-        title: "Redirecting to dashboard...",
-        description: "Taking you to your goal dashboard",
-      })
+      toast({ title: "Redirecting to dashboard...", description: "Taking you to your goal dashboard" })
       router.push("/dashboard")
     } else {
-      // Save first, then navigate
       saveGoalToApp().then(() => {
         setTimeout(() => {
-          toast({
-            title: "Redirecting to dashboard...",
-            description: "Taking you to your goal dashboard",
-          })
+          toast({ title: "Redirecting to dashboard...", description: "Taking you to your goal dashboard" })
           router.push("/dashboard")
         }, 1500)
       })
     }
   }
 
-  // Initialize the conversation when goal is loaded
   useEffect(() => {
     const storedGoal = localStorage.getItem("newGoal")
     if (storedGoal && !hasInitialized) {
       try {
         const parsedGoal = JSON.parse(storedGoal)
         setGoal(parsedGoal)
-
-        // Create initial prompt that asks for ONE question
         const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${
           parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""
         } ${
           parsedGoal.timeline ? `I want to achieve this in: ${parsedGoal.timeline}` : ""
         }. Please ask me ONE specific, personalized question to help break this down into concrete, manageable sub-goals. Start with understanding my experience level or current situation with this type of goal.`
-
         console.log("Sending initial prompt:", initialPrompt)
-
-        // Send the initial message to start the conversation
         setTimeout(() => {
-          append({
-            role: "user",
-            content: initialPrompt,
-          })
+          append({ role: "user", content: initialPrompt })
         }, 1000)
-
         setHasInitialized(true)
       } catch (error) {
         console.error("Error parsing stored goal:", error)
@@ -410,28 +346,28 @@ export default function GoalBreakdown() {
     }
   }, [append, hasInitialized])
 
-  // Debug: Log messages changes
   useEffect(() => {
     console.log("Messages updated:", messages)
   }, [messages])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll logic for chat log
   useEffect(() => {
-    // Auto-scroll to bottom when messages change, but with refined conditions
     if (isLoading) {
-      // If AI is thinking, don't scroll yet. Wait for the message.
+      // If loading, new messages might be coming, better to scroll to bottom
+      scrollToBottom()
       return
     }
-
-    if (messages.length >= 2) {
-      // Only start auto-scrolling the chat container to its bottom
-      // once there are at least two messages (e.g., user's initial prompt + AI's first response)
-      // and the AI is not currently loading.
+    if (isInitialMessagesLoad.current && messages.length > 0) {
+      // This is the first time messages are loaded.
+      // Ensure chat container is scrolled to its top.
+      if (chatLogContainerRef.current) {
+        chatLogContainerRef.current.scrollTop = 0
+      }
+      isInitialMessagesLoad.current = false // Mark that initial messages are handled.
+    } else if (!isInitialMessagesLoad.current && messages.length > 0) {
+      // For subsequent message updates (and not loading), scroll to bottom.
       scrollToBottom()
     }
-    // If messages.length is 0 or 1, we don't call scrollToBottom().
-    // This relies on the other useEffect's window.scrollTo(0,0) to keep the page at the top.
-    // The user will see the top of the page and can scroll down to the chat if it's not immediately visible.
   }, [messages, isLoading])
 
   if (!goal) {
@@ -456,18 +392,14 @@ export default function GoalBreakdown() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
       <SiteHeader />
-
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Header */}
         <DashboardHeader
           title="AI Goal Breakdown"
           description="Let's break down your goal into specific, gentle steps that honor your journey."
           backHref="/create-goal"
           backText="Back to Goal Creation"
         />
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* AI Chat Interface */}
           <div className="lg:col-span-2">
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>
@@ -483,7 +415,6 @@ export default function GoalBreakdown() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Error Display */}
                 {error && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                     <div className="flex items-start">
@@ -496,16 +427,12 @@ export default function GoalBreakdown() {
                             setError(null)
                             setHasInitialized(false)
                             setQuestionCount(0)
-                            // Retry initialization
                             setTimeout(() => {
                               const storedGoal = localStorage.getItem("newGoal")
                               if (storedGoal) {
                                 const parsedGoal = JSON.parse(storedGoal)
                                 const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". Please ask me ONE specific question to help break this down.`
-                                append({
-                                  role: "user",
-                                  content: initialPrompt,
-                                })
+                                append({ role: "user", content: initialPrompt })
                                 setHasInitialized(true)
                               }
                             }, 500)
@@ -519,8 +446,8 @@ export default function GoalBreakdown() {
                     </div>
                   </div>
                 )}
-
-                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                {/* Assign ref to the scrollable chat log container */}
+                <div ref={chatLogContainerRef} className="space-y-4 mb-6 max-h-96 overflow-y-auto">
                   {messages.length === 0 && !isLoading && !error && (
                     <div className="text-center py-8">
                       <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -529,7 +456,6 @@ export default function GoalBreakdown() {
                       <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
                     </div>
                   )}
-
                   {messages.map((message, index) => (
                     <div
                       key={index}
@@ -554,7 +480,6 @@ export default function GoalBreakdown() {
                       </div>
                     </div>
                   ))}
-
                   {isLoading && (
                     <div className="bg-rose-50 border border-rose-100 mr-8 p-6 rounded-xl">
                       <div className="flex items-start">
@@ -573,7 +498,6 @@ export default function GoalBreakdown() {
                   )}
                   <div ref={messagesEndRef} />
                 </div>
-
                 <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input
                     value={input}
@@ -590,8 +514,6 @@ export default function GoalBreakdown() {
                     Send
                   </Button>
                 </form>
-
-                {/* Debug info - remove in production */}
                 <Collapsible defaultOpen={false}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="mt-4 text-xs text-gray-600 hover:text-gray-800">
@@ -610,9 +532,8 @@ export default function GoalBreakdown() {
                 </Collapsible>
               </CardContent>
             </Card>
-
-            {/* Generated Sub-Goals */}
             {subGoals.length > 0 && (
+              // ... (Generated Sub-Goals Card remains the same)
               <Card className="mt-6 border-0 rounded-3xl shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
@@ -637,8 +558,6 @@ export default function GoalBreakdown() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Save Status */}
                   {hasSaved && (
                     <div className="mt-4 p-3 bg-sage-50 border border-sage-200 rounded-xl">
                       <div className="flex items-center">
@@ -647,7 +566,6 @@ export default function GoalBreakdown() {
                       </div>
                     </div>
                   )}
-
                   <div className="mt-6 flex gap-3">
                     <Button
                       onClick={goToTimeline}
@@ -688,9 +606,8 @@ export default function GoalBreakdown() {
                 </CardContent>
               </Card>
             )}
-
-            {/* Multiple Timelines Display */}
             {isCreatingMultiple && allGeneratedGoals.length > 0 && (
+              // ... (Multiple Timelines Card remains the same)
               <Card className="mt-6 border-0 rounded-3xl shadow-md">
                 <CardHeader>
                   <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
@@ -722,7 +639,6 @@ export default function GoalBreakdown() {
                       </div>
                     ))}
                   </div>
-
                   <div className="mt-6 flex gap-3">
                     <Button
                       onClick={() => saveMultipleGoalsToApp()}
@@ -731,8 +647,8 @@ export default function GoalBreakdown() {
                     >
                       {isSaving ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Saving All Timelines...
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Saving
+                          All Timelines...
                         </>
                       ) : (
                         <>
@@ -746,9 +662,8 @@ export default function GoalBreakdown() {
               </Card>
             )}
           </div>
-
-          {/* Goal Summary & Progress */}
           <div className="space-y-6">
+            {/* ... (Goal Summary & Progress Cards remain the same) */}
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>
                 <CardTitle className="text-xl font-serif text-stone-800">Your Goal</CardTitle>
@@ -768,7 +683,6 @@ export default function GoalBreakdown() {
                 </div>
               </CardContent>
             </Card>
-
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>
                 <CardTitle className="text-xl font-serif text-stone-800">Breakdown Process</CardTitle>
@@ -781,9 +695,7 @@ export default function GoalBreakdown() {
                   </div>
                   <div className="flex items-center">
                     <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        questionCount > 0 ? "bg-sage-500" : "bg-stone-300"
-                      }`}
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${questionCount > 0 ? "bg-sage-500" : "bg-stone-300"}`}
                     >
                       {questionCount > 0 && <CheckCircle className="h-3 w-3 text-white" />}
                     </div>
@@ -793,9 +705,7 @@ export default function GoalBreakdown() {
                   </div>
                   <div className="flex items-center">
                     <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
-                      }`}
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"}`}
                     >
                       {(subGoals.length > 0 || allGeneratedGoals.length > 0) && (
                         <CheckCircle className="h-3 w-3 text-white" />
@@ -812,9 +722,7 @@ export default function GoalBreakdown() {
                   </div>
                   <div className="flex items-center">
                     <div
-                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        hasSaved ? "bg-sage-500" : "bg-stone-300"
-                      }`}
+                      className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${hasSaved ? "bg-sage-500" : "bg-stone-300"}`}
                     >
                       {hasSaved && <CheckCircle className="h-3 w-3 text-white" />}
                     </div>
@@ -823,7 +731,6 @@ export default function GoalBreakdown() {
                 </div>
               </CardContent>
             </Card>
-
             <div className="bg-gradient-to-r from-amber-300 to-sage-300 p-6 rounded-3xl shadow-md text-white">
               <div className="flex items-start mb-4">
                 <Lightbulb className="h-6 w-6 mr-3 flex-shrink-0" />
