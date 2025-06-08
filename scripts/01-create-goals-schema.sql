@@ -1,3 +1,10 @@
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS goals CASCADE;
+DROP TABLE IF EXISTS milestones CASCADE;
+DROP TABLE IF EXISTS subscriptions CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS prices CASCADE;
+
 -- Create goals table
 CREATE TABLE IF NOT EXISTS goals (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -43,12 +50,12 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_goals_updated_at 
-    BEFORE UPDATE ON goals 
-    FOR EACH ROW 
+CREATE TRIGGER update_goals_updated_at
+    BEFORE UPDATE ON goals
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_milestones_updated_at 
-    BEFORE UPDATE ON milestones 
-    FOR EACH ROW 
+CREATE TRIGGER update_milestones_updated_at
+    BEFORE UPDATE ON milestones
+    FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();

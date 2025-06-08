@@ -1,18 +1,75 @@
 import { supabase } from "@/lib/supabase"
-import type { DatabaseGoal, DatabaseGoalWithMilestones } from "@/types/database"
 import type { SavedGoal } from "@/types"
+import type { DatabaseGoal, DatabaseGoalWithMilestones } from "@/types/database"
 import { convertLocalStorageToDatabase } from "@/types/database"
 
 export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
-  // Use the custom function we created in our migration to get goals with stats
-  const { data, error } = await supabase().rpc("get_user_goals_with_stats", { user_uuid: userId })
+  try {
+    // First, let's test basic database connectivity
+    console.log("Testing database connectivity...")
+    const { data: testData, error: testError } = await supabase()
+      .from("goals")
+      .select("count", { count: "exact", head: true })
+      .eq("user_id", userId)
 
-  if (error) {
-    console.error("Error fetching goals:", error)
+    if (testError) {
+      console.error("Database connectivity test failed:", testError)
+      throw testError
+    }
+
+    console.log("Database connectivity test passed")
+
+    // Try using the custom function first
+    const { data: rpcData, error: rpcError } = await supabase().rpc("get_user_goals_with_stats", { user_uuid: userId })
+
+    if (!rpcError && rpcData) {
+      return rpcData || []
+    }
+
+    // Fallback: use direct queries if function doesn't exist
+    console.log("Database function not available, using direct queries")
+
+    // Get goals first
+    const { data: goals, error: goalsError } = await supabase()
+      .from("goals")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (goalsError) {
+      console.error("Error fetching goals:", goalsError)
+      throw goalsError
+    }
+
+    if (!goals) return []
+
+    // Get milestones for each goal
+    const goalsWithMilestones: DatabaseGoalWithMilestones[] = []
+
+    for (const goal of goals) {
+      const { data: milestones, error: milestonesError } = await supabase()
+        .from("milestones")
+        .select("*")
+        .eq("goal_id", goal.id)
+        .order("week", { ascending: true })
+
+      if (milestonesError) {
+        console.error("Error fetching milestones for goal:", goal.id, milestonesError)
+      }
+
+      goalsWithMilestones.push({
+        ...goal,
+        milestones: milestones || [],
+        total_milestones: milestones?.length || 0,
+        completed_milestones: milestones?.filter(m => m.status === 'completed').length || 0
+      })
+    }
+
+    return goalsWithMilestones
+  } catch (error) {
+    console.error("Error in getGoals:", error)
     throw error
   }
-
-  return data || []
 }
 
 export async function getGoalById(goalId: string, userId: string): Promise<DatabaseGoalWithMilestones | null> {

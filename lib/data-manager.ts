@@ -1,5 +1,5 @@
+import { createGoal, deleteGoal, getGoalById, getGoals, updateGoal } from "@/lib/services/goals"
 import type { SavedGoal } from "@/types"
-import { createGoal, getGoalById, getGoals, updateGoal, deleteGoal } from "@/lib/services/goals"
 import { convertDatabaseToLocalStorage } from "@/types/database"
 
 // Local storage keys
@@ -106,13 +106,21 @@ export class GoalDataManager {
   async getGoals(): Promise<SavedGoal[]> {
     if (this.isAuthenticated) {
       try {
+        console.log("Fetching goals from database for user:", this.userId)
         const dbGoals = await getGoals(this.userId!)
+        console.log("Successfully fetched", dbGoals.length, "goals from database")
         return dbGoals.map(convertDatabaseToLocalStorage)
       } catch (error) {
         console.error("Error fetching goals from database:", error)
+        // Log more detailed error information
+        if (error && typeof error === 'object') {
+          console.error("Error details:", JSON.stringify(error, null, 2))
+        }
+        console.log("Falling back to localStorage")
         return getLocalGoals() // Fallback to localStorage
       }
     } else {
+      console.log("User not authenticated, using localStorage")
       return getLocalGoals()
     }
   }
@@ -190,9 +198,9 @@ export class GoalDataManager {
             const updatedDbGoal = await updateGoal(matchingGoal.id, goalData, this.userId!)
             return updatedDbGoal
               ? convertDatabaseToLocalStorage({
-                  ...updatedDbGoal,
-                  milestones: matchingGoal.milestones,
-                })
+                ...updatedDbGoal,
+                milestones: matchingGoal.milestones,
+              })
               : null
           }
 

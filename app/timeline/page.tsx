@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Target, CheckCircle, Heart, Check, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useGoalData } from "@/contexts/goal-data-context"
 
@@ -240,6 +241,7 @@ export default function Timeline() {
   if (loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+        <SiteHeader />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400 mx-auto mb-4"></div>
@@ -253,6 +255,7 @@ export default function Timeline() {
   if (error) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+        <SiteHeader />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -270,6 +273,8 @@ export default function Timeline() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
+      <SiteHeader />
+
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <DashboardHeader
