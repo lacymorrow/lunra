@@ -437,8 +437,6 @@ export default function GoalBreakdown() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      <SiteHeader />
-
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
         <DashboardHeader
@@ -451,7 +449,7 @@ export default function GoalBreakdown() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* AI Chat Interface */}
           <div className="lg:col-span-2">
-            <Card className="border-0 rounded-3xl shadow-md flex flex-col max-h-[calc(100vh-22rem)]">
+            <Card className="border-0 rounded-3xl shadow-md flex flex-col h-[95vh]">
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center text-2xl font-serif text-stone-800">
                   <Heart className="h-5 w-5 mr-2 text-rose-400" />

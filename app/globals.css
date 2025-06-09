@@ -79,36 +79,6 @@
     --sage-600: 60 15% 40%;
     --sage-700: 60 15% 30%;
   }
-
-  .dark {
-    --background: 24 10% 10%;
-    --foreground: 30 10% 95%;
-
-    --card: 24 10% 12%;
-    --card-foreground: 30 10% 95%;
-
-    --popover: 24 10% 12%;
-    --popover-foreground: 30 10% 95%;
-
-    --primary: 2 65% 65%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 24 6% 18%;
-    --secondary-foreground: 30 10% 95%;
-
-    --muted: 24 6% 18%;
-    --muted-foreground: 24 5% 70%;
-
-    --accent: 24 6% 18%;
-    --accent-foreground: 30 10% 95%;
-
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 30 10% 95%;
-
-    --border: 24 6% 20%;
-    --input: 24 6% 20%;
-    --ring: 24 6% 50%;
-  }
 }
 
 @layer base {
