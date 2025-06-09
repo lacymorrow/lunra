@@ -103,13 +103,27 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 <Link href="/analytics" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
                   Analytics
                 </Link>
+                {!user && (
+                  <>
+                    <Link href="/auth/signin">
+                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/signup">
+                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-4">
                 {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800 rounded-full">
+                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800 rounded-full p-2">
                         <User className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -128,8 +142,9 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+                {/* New Goal button remains here */}
                 <Link href="/create-goal">
-                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6 hidden md:flex">
+                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
                     New Goal
                   </Button>
                 </Link>
