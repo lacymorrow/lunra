@@ -478,18 +478,24 @@ export default function Analytics() {
                   className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
                   variant="outline"
                   size="sm"
+                  onClick={() => {
+                    
+                    // For simplicity, we'll navigate to the timeline page where users can manage milestones
+                    window.location.href = "/timeline"
+                  }}
                 >
                   Set New Milestone
                 </Button>
-                <Link href="/check-in" className="block">
-                  <Button
-                    className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
-                    variant="outline"
-                    size="sm"
-                  >
-                    Weekly Check-in
-                  </Button>
-                </Link>
+
+                <Button
+                  className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = "/check-in"}
+                >
+                  Weekly Check-in
+                </Button>
+
               </CardContent>
             </Card>
 

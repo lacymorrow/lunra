@@ -478,6 +478,11 @@ export default function Timeline() {
                   Mark Current Milestone Complete
                 </Button>
                 <Button
+                  onClick={() => {
+                    if (currentGoal) {
+                      dataManager.adjustTimeline(currentGoal.id)
+                    }
+                  }}
                   className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
                   variant="outline"
                 >

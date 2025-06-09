@@ -187,13 +187,18 @@ export class GoalDataManager {
 
           if (matchingGoal) {
             // Update the database goal
-            const updatedDbGoal = await updateGoal(matchingGoal.id, goalData, this.userId!)
-            return updatedDbGoal
-              ? convertDatabaseToLocalStorage({
-                  ...updatedDbGoal,
-                  milestones: matchingGoal.milestones,
-                })
-              : null
+            const updatedDbGoal = await updateGoal(
+              matchingGoal.id as string,
+              goalData,
+              this.userId!
+            )
+            
+            // Get the full goal with milestones
+            if (updatedDbGoal) {
+              const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
+              return fullGoal ? convertDatabaseToLocalStorage(fullGoal) : null
+            }
+            return null
           }
 
           // If no match in database, update the local goal
@@ -202,11 +207,13 @@ export class GoalDataManager {
 
         // If it's a string, it's a database UUID
         const updatedDbGoal = await updateGoal(id as string, goalData, this.userId!)
-        if (!updatedDbGoal) return null
-
+        
         // Get the full goal with milestones
-        const fullGoal = await getGoalById(id as string, this.userId!)
-        return fullGoal ? convertDatabaseToLocalStorage(fullGoal) : null
+        if (updatedDbGoal) {
+          const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
+          return fullGoal ? convertDatabaseToLocalStorage(fullGoal) : null
+        }
+        return null
       } catch (error) {
         console.error("Error updating goal in database:", error)
 
@@ -239,10 +246,10 @@ export class GoalDataManager {
 
           if (matchingGoal) {
             // Delete the database goal
-            await deleteGoal(matchingGoal.id, this.userId!)
+            await deleteGoal(matchingGoal.id as string, this.userId!)
           }
 
-          // Also delete the local goal
+          // Always delete the local goal
           deleteLocalGoal(id)
           return true
         }
@@ -269,9 +276,70 @@ export class GoalDataManager {
       return false
     }
   }
+
+  // Milestone operations
+  async markMilestoneComplete(goalId: number, milestoneIndex: number): Promise<void> {
+    const goal = await this.getGoalById(goalId)
+    if (!goal || !goal.milestones || !goal.milestones[milestoneIndex]) return
+
+    // Update the milestone status
+    const updatedMilestones = [...goal.milestones]
+    updatedMilestones[milestoneIndex] = {
+      ...updatedMilestones[milestoneIndex],
+      status: "completed",
+      progress: 100,
+    }
+
+    // Calculate new progress
+    const totalMilestones = updatedMilestones.length
+    const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
+    const newProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0
+
+    // Update the goal
+    await this.updateGoal(goalId, {
+      milestones: updatedMilestones,
+      progress: newProgress,
+      status: newProgress === 100 ? "completed" : newProgress >= 50 ? "on-track" : "in-progress",
+    })
+  }
+
+  async undoMilestoneComplete(goalId: number, milestoneIndex: number): Promise<void> {
+    const goal = await this.getGoalById(goalId)
+    if (!goal || !goal.milestones || !goal.milestones[milestoneIndex]) return
+
+    // Update the milestone status
+    const updatedMilestones = [...goal.milestones]
+    updatedMilestones[milestoneIndex] = {
+      ...updatedMilestones[milestoneIndex],
+      status: "in-progress",
+      progress: 50,
+    }
+
+    // Calculate new progress
+    const totalMilestones = updatedMilestones.length
+    const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
+    const newProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0
+
+    // Update the goal
+    await this.updateGoal(goalId, {
+      milestones: updatedMilestones,
+      progress: newProgress,
+      status: newProgress === 0 ? "not-started" : newProgress < 50 ? "behind" : "in-progress",
+    })
+  }
+
+  async adjustTimeline(goalId: number): Promise<void> {
+    const goal = await this.getGoalById(goalId)
+    if (!goal) return
+    
+    // This function would typically open a modal or navigate to a page
+    // where the user can adjust the timeline of their goal
+    // For now, we'll just log that this functionality is not yet implemented
+    console.log('Adjust Timeline functionality not yet implemented for goal:', goalId)
+  }
 }
 
-// Create a singleton instance
+  // Create a singleton instance
 let dataManagerInstance: GoalDataManager | null = null
 
 export function getDataManager(userId?: string): GoalDataManager {
