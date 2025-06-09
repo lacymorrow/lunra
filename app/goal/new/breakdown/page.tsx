@@ -13,7 +13,7 @@ import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
-import { useGoalData } from "@/contexts/goal-data-context"
+import { useGoalData, type SavedGoal as GoalDataContextSavedGoal } from "@/contexts/goal-data-context"
 
 interface Goal {
   title: string
@@ -68,6 +68,7 @@ export default function GoalBreakdown() {
   const [parentGoalTitle, setParentGoalTitle] = useState("")
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastSavedGoalIdRef = useRef<number | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -75,18 +76,18 @@ export default function GoalBreakdown() {
 
   const { toast } = useToast()
 
+  const { dataManager, refreshGoals } = useGoalData()
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/goal-breakdown",
     onFinish: (message) => {
       console.log("AI Response:", message.content)
-      setError(null) // Clear any previous errors
+      setError(null)
 
-      // Count questions asked (assistant messages that don't contain SUB_GOALS)
       if (message.role === "assistant" && !message.content.includes("SUB_GOALS:")) {
         setQuestionCount((prev) => prev + 1)
       }
 
-      // Parse AI response to extract sub-goals
       if (message.content.includes("SUB_GOALS:")) {
         const goalSection = message.content.split("SUB_GOALS:")[1]
         const goals = goalSection
@@ -147,11 +148,8 @@ export default function GoalBreakdown() {
     },
   })
 
-  // Save goal to localStorage and application state
-  const { dataManager, refreshGoals } = useGoalData()
-
-  const saveGoalToApp = async () => {
-    if (!goal || subGoals.length === 0) return
+  const saveGoalToApp = async (): Promise<number | null> => {
+    if (!goal || subGoals.length === 0) return null
 
     setIsSaving(true)
     try {
@@ -160,40 +158,25 @@ export default function GoalBreakdown() {
         description: "Creating your personalized action plan",
       })
 
-      // Create timeline milestones from sub-goals
       const milestones = subGoals.map((subGoal, index) => {
         let week = index + 1
         let task = subGoal
-
         const weekMatch = subGoal.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
         if (weekMatch) {
           week = Number.parseInt(weekMatch[1], 10)
           task = weekMatch[2].trim()
         }
-
         let maxWeeks = 4
         if (goal.timeline) {
           const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
           const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
-
-          if (monthsMatch) {
-            maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
-          } else if (weeksMatch) {
-            maxWeeks = Number.parseInt(weeksMatch[1], 10)
-          }
+          if (monthsMatch) maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
+          else if (weeksMatch) maxWeeks = Number.parseInt(weeksMatch[1], 10)
         }
-
         week = Math.min(week, maxWeeks)
-
-        return {
-          week: week,
-          task: task,
-          status: index === 0 ? "in-progress" : "pending",
-          progress: index === 0 ? 10 : 0,
-        }
+        return { week, task, status: index === 0 ? "in-progress" : "pending", progress: index === 0 ? 10 : 0 }
       })
 
-      // Calculate due date based on timeline
       const dueDate = new Date()
       if (goal.timeline.toLowerCase().includes("month")) {
         const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
@@ -205,8 +188,7 @@ export default function GoalBreakdown() {
         dueDate.setMonth(dueDate.getMonth() + 6)
       }
 
-      // Create new goal object
-      const newGoal: Omit<SavedGoal, "id"> = {
+      const newGoalToSave: Omit<GoalDataContextSavedGoal, "id" | "createdAt"> = {
         title: goal.title,
         description: goal.description || "",
         timeline: goal.timeline || "",
@@ -215,51 +197,38 @@ export default function GoalBreakdown() {
         dueDate: dueDate.toISOString().split("T")[0],
         subGoals: subGoals,
         completedSubGoals: 0,
-        createdAt: new Date().toISOString(),
         milestones: milestones,
       }
 
-      // Save using data manager
-      const savedGoal = await dataManager.createGoal(newGoal)
-
-      // Clean up the temporary goal data
+      const savedGoal = await dataManager.createGoal(newGoalToSave)
       localStorage.removeItem("newGoal")
-
       console.log("Goal saved successfully:", savedGoal)
       setHasSaved(true)
+      lastSavedGoalIdRef.current = savedGoal.id
 
       toast({
         title: "Goal saved successfully! 🎉",
         description: "Your timeline has been created and saved to your dashboard",
       })
 
-      // Refresh goals in context
       await refreshGoals()
-
-      setTimeout(() => {
-        setIsSaving(false)
-        toast({
-          title: "Redirecting to timeline...",
-          description: "Taking you to your personalized timeline view",
-        })
-        router.push("/timeline")
-      }, 1000)
+      setIsSaving(false)
+      return savedGoal.id
     } catch (error) {
       console.error("Error saving goal:", error)
       setError("Failed to save goal. Please try again.")
-
       toast({
         title: "Error saving goal",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
-
       setIsSaving(false)
+      return null
     }
   }
 
-  const saveMultipleGoalsToApp = async () => {
-    if (!goal || allGeneratedGoals.length === 0) return
+  const saveMultipleGoalsToApp = async (): Promise<number | null> => {
+    if (!goal || allGeneratedGoals.length === 0) return null
 
     setIsSaving(true)
     try {
@@ -268,112 +237,120 @@ export default function GoalBreakdown() {
         description: `Creating ${allGeneratedGoals.length} personalized timelines`,
       })
 
-      const newGoals: Array<Omit<SavedGoal, "id">> = allGeneratedGoals.map((timeline) => {
-        const dueDate = new Date()
-        if (goal.timeline.toLowerCase().includes("month")) {
-          const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
-          dueDate.setMonth(dueDate.getMonth() + months)
-        } else {
-          dueDate.setMonth(dueDate.getMonth() + 6)
-        }
+      const newGoalsToSave: Array<Omit<GoalDataContextSavedGoal, "id" | "createdAt">> = allGeneratedGoals.map(
+        (timeline) => {
+          const dueDate = new Date()
+          if (goal.timeline.toLowerCase().includes("month")) {
+            const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
+            dueDate.setMonth(dueDate.getMonth() + months)
+          } else {
+            dueDate.setMonth(dueDate.getMonth() + 6)
+          }
+          return {
+            title: timeline.title,
+            description: timeline.description,
+            timeline: timeline.timeline,
+            progress: 5,
+            status: "in-progress",
+            dueDate: dueDate.toISOString().split("T")[0],
+            subGoals: timeline.subGoals,
+            completedSubGoals: 0,
+            milestones: timeline.milestones,
+          }
+        },
+      )
 
-        return {
-          title: timeline.title,
-          description: timeline.description,
-          timeline: timeline.timeline,
-          progress: 5,
-          status: "in-progress",
-          dueDate: dueDate.toISOString().split("T")[0],
-          subGoals: timeline.subGoals,
-          completedSubGoals: 0,
-          createdAt: new Date().toISOString(),
-          milestones: timeline.milestones,
-        }
-      })
-
-      // Save all goals using data manager
-      const savedGoals = await Promise.all(newGoals.map((goalData) => dataManager.createGoal(goalData)))
-
+      const savedGoals = await Promise.all(newGoalsToSave.map((goalData) => dataManager.createGoal(goalData)))
       localStorage.removeItem("newGoal")
-
       console.log("Multiple goals saved successfully:", savedGoals)
       setHasSaved(true)
+      if (savedGoals.length > 0) {
+        lastSavedGoalIdRef.current = savedGoals[0].id
+      }
 
       toast({
         title: "Timelines created successfully! 🎉",
         description: `${savedGoals.length} timelines have been saved to your dashboard`,
       })
 
-      // Refresh goals in context
       await refreshGoals()
-
-      setTimeout(() => {
-        setIsSaving(false)
-        toast({
-          title: "Redirecting to timeline...",
-          description: "Taking you to your personalized timeline view",
-        })
-        router.push("/timeline")
-      }, 1000)
+      setIsSaving(false)
+      return savedGoals.length > 0 ? savedGoals[0].id : null
     } catch (error) {
       console.error("Error saving multiple goals:", error)
       setError("Failed to save goals. Please try again.")
-
       toast({
         title: "Error saving timelines",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       })
-
       setIsSaving(false)
+      return null
     }
   }
 
-  // Navigate to timeline with saved goal
   const goToTimeline = () => {
-    if (hasSaved) {
+    if (isSaving) return
+
+    if (hasSaved && lastSavedGoalIdRef.current) {
       toast({
         title: "Redirecting to timeline...",
         description: "Taking you to your personalized timeline view",
       })
-      router.push("/timeline")
+      router.push(`/timeline?goalId=${lastSavedGoalIdRef.current}`)
     } else {
-      // Save first, then navigate
-      saveGoalToApp().then(() => {
-        setTimeout(() => {
+      const saveFunction = isCreatingMultiple ? saveMultipleGoalsToApp : saveGoalToApp
+      saveFunction().then((newlySavedGoalId) => {
+        if (newlySavedGoalId) {
+          setTimeout(() => {
+            toast({
+              title: "Redirecting to timeline...",
+              description: "Taking you to your personalized timeline view",
+            })
+            router.push(`/timeline?goalId=${newlySavedGoalId}`)
+          }, 500)
+        } else if (!isSaving) {
           toast({
-            title: "Redirecting to timeline...",
-            description: "Taking you to your personalized timeline view",
+            title: "Could not save goal",
+            description: "Please try again or check the console for errors.",
+            variant: "destructive",
           })
-          router.push("/timeline")
-        }, 1500)
+        }
       })
     }
   }
 
-  // Navigate to dashboard with saved goal
   const goToDashboard = () => {
-    if (hasSaved) {
+    if (isSaving) return
+
+    if (hasSaved && lastSavedGoalIdRef.current) {
       toast({
         title: "Redirecting to dashboard...",
         description: "Taking you to your goal dashboard",
       })
       router.push("/dashboard")
     } else {
-      // Save first, then navigate
-      saveGoalToApp().then(() => {
-        setTimeout(() => {
+      const saveFunction = isCreatingMultiple ? saveMultipleGoalsToApp : saveGoalToApp
+      saveFunction().then((newlySavedGoalId) => {
+        if (newlySavedGoalId) {
+          setTimeout(() => {
+            toast({
+              title: "Redirecting to dashboard...",
+              description: "Taking you to your goal dashboard",
+            })
+            router.push("/dashboard")
+          }, 500)
+        } else if (!isSaving) {
           toast({
-            title: "Redirecting to dashboard...",
-            description: "Taking you to your goal dashboard",
+            title: "Could not save goal",
+            description: "Please try again or check the console for errors.",
+            variant: "destructive",
           })
-          router.push("/dashboard")
-        }, 1500)
+        }
       })
     }
   }
 
-  // Initialize the conversation when goal is loaded
   useEffect(() => {
     const storedGoal = localStorage.getItem("newGoal")
     if (storedGoal && !hasInitialized) {
@@ -381,7 +358,6 @@ export default function GoalBreakdown() {
         const parsedGoal = JSON.parse(storedGoal)
         setGoal(parsedGoal)
 
-        // Create initial prompt that asks for ONE question
         const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${
           parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""
         } ${
@@ -390,7 +366,6 @@ export default function GoalBreakdown() {
 
         console.log("Sending initial prompt:", initialPrompt)
 
-        // Send the initial message to start the conversation
         setTimeout(() => {
           append({
             role: "user",
@@ -406,12 +381,10 @@ export default function GoalBreakdown() {
     }
   }, [append, hasInitialized])
 
-  // Debug: Log messages changes
   useEffect(() => {
     console.log("Messages updated:", messages)
   }, [messages])
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading])
@@ -438,7 +411,6 @@ export default function GoalBreakdown() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Header */}
         <DashboardHeader
           title="AI Goal Breakdown"
           description="Let's break down your goal into specific, gentle steps that honor your journey."
@@ -447,7 +419,6 @@ export default function GoalBreakdown() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* AI Chat Interface */}
           <div className="lg:col-span-2">
             <Card className="border-0 rounded-3xl shadow-md flex flex-col h-[95vh]">
               <CardHeader className="flex-shrink-0">
@@ -464,7 +435,6 @@ export default function GoalBreakdown() {
               </CardHeader>
 
               <CardContent className="flex-grow overflow-y-auto p-6 space-y-4">
-                {/* Error Display */}
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
                     <div className="flex items-start">
@@ -477,7 +447,6 @@ export default function GoalBreakdown() {
                             setError(null)
                             setHasInitialized(false)
                             setQuestionCount(0)
-                            // Retry initialization
                             setTimeout(() => {
                               const storedGoal = localStorage.getItem("newGoal")
                               if (storedGoal) {
@@ -552,7 +521,6 @@ export default function GoalBreakdown() {
                   </div>
                 )}
 
-                {/* Generated Sub-Goals (Now inside the chat scroll area) */}
                 {subGoals.length > 0 && (
                   <div className="mt-6 p-6 bg-stone-50 border border-stone-200 rounded-xl">
                     <CardHeader className="p-0 mb-4">
@@ -627,7 +595,6 @@ export default function GoalBreakdown() {
                   </div>
                 )}
 
-                {/* Multiple Timelines Display (Now inside the chat scroll area) */}
                 {isCreatingMultiple && allGeneratedGoals.length > 0 && (
                   <div className="mt-6 p-6 bg-stone-50 border border-stone-200 rounded-xl">
                     <CardHeader className="p-0 mb-4">
@@ -725,7 +692,6 @@ export default function GoalBreakdown() {
             </Card>
           </div>
 
-          {/* Goal Summary & Progress */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>

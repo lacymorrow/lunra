@@ -187,12 +187,8 @@ export class GoalDataManager {
 
           if (matchingGoal) {
             // Update the database goal
-            const updatedDbGoal = await updateGoal(
-              matchingGoal.id as string,
-              goalData,
-              this.userId!
-            )
-            
+            const updatedDbGoal = await updateGoal(matchingGoal.id as string, goalData, this.userId!)
+
             // Get the full goal with milestones
             if (updatedDbGoal) {
               const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
@@ -207,7 +203,7 @@ export class GoalDataManager {
 
         // If it's a string, it's a database UUID
         const updatedDbGoal = await updateGoal(id as string, goalData, this.userId!)
-        
+
         // Get the full goal with milestones
         if (updatedDbGoal) {
           const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
@@ -290,6 +286,17 @@ export class GoalDataManager {
       progress: 100,
     }
 
+    // Find the next pending milestone and set it to 'in-progress'
+    const nextPendingIndex = updatedMilestones.findIndex((m, index) => index > milestoneIndex && m.status === "pending")
+
+    if (nextPendingIndex !== -1) {
+      updatedMilestones[nextPendingIndex] = {
+        ...updatedMilestones[nextPendingIndex],
+        status: "in-progress",
+        progress: 10, // Give it a small starting progress
+      }
+    }
+
     // Calculate new progress
     const totalMilestones = updatedMilestones.length
     const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
@@ -307,12 +314,28 @@ export class GoalDataManager {
     const goal = await this.getGoalById(goalId)
     if (!goal || !goal.milestones || !goal.milestones[milestoneIndex]) return
 
-    // Update the milestone status
     const updatedMilestones = [...goal.milestones]
+
+    // Find any 'in-progress' milestone that isn't the one we're undoing
+    // and set it back to 'pending'. This handles the case where completing
+    // the milestone at `milestoneIndex` had automatically set the next one to 'in-progress'.
+    const currentlyActiveMilestoneIndex = updatedMilestones.findIndex(
+      (m, index) => m.status === "in-progress" && index !== milestoneIndex,
+    )
+
+    if (currentlyActiveMilestoneIndex !== -1) {
+      updatedMilestones[currentlyActiveMilestoneIndex] = {
+        ...updatedMilestones[currentlyActiveMilestoneIndex],
+        status: "pending",
+        progress: 0,
+      }
+    }
+
+    // Now, set the undone milestone back to 'in-progress'
     updatedMilestones[milestoneIndex] = {
       ...updatedMilestones[milestoneIndex],
       status: "in-progress",
-      progress: 50,
+      progress: 50, // Reset to a standard 'in-progress' value
     }
 
     // Calculate new progress
@@ -331,15 +354,15 @@ export class GoalDataManager {
   async adjustTimeline(goalId: number): Promise<void> {
     const goal = await this.getGoalById(goalId)
     if (!goal) return
-    
+
     // This function would typically open a modal or navigate to a page
     // where the user can adjust the timeline of their goal
     // For now, we'll just log that this functionality is not yet implemented
-    console.log('Adjust Timeline functionality not yet implemented for goal:', goalId)
+    console.log("Adjust Timeline functionality not yet implemented for goal:", goalId)
   }
 }
 
-  // Create a singleton instance
+// Create a singleton instance
 let dataManagerInstance: GoalDataManager | null = null
 
 export function getDataManager(userId?: string): GoalDataManager {
