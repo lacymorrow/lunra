@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useGoalData } from "@/contexts/goal-data-context"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,7 +73,6 @@ const colorOptions = [
 ]
 
 export default function Calendar() {
-  const { goals } = useGoalData()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showAddEvent, setShowAddEvent] = useState(false)
@@ -89,8 +87,21 @@ export default function Calendar() {
     color: "#EC4899",
   })
 
-  // Sample events data, now without goal-related items which will be loaded dynamically
+  // Enhanced sample events data
   const [events, setEvents] = useState<CalendarEvent[]>([
+    {
+      id: "1",
+      title: "Complete market research",
+      description: "Research competitors and target market",
+      date: "2024-01-15",
+      time: "09:00",
+      endTime: "11:00",
+      type: "subgoal",
+      goalId: "business-1",
+      completed: false,
+      priority: "high",
+      color: "#FBBF24",
+    },
     {
       id: "2",
       title: "Doctor's Appointment",
@@ -144,6 +155,17 @@ export default function Calendar() {
       color: "#F59E0B",
     },
     {
+      id: "6",
+      title: "Business plan milestone",
+      description: "Complete first draft of business plan",
+      date: "2024-01-20",
+      type: "milestone",
+      goalId: "business-1",
+      completed: false,
+      priority: "high",
+      color: "#8EB69B",
+    },
+    {
       id: "7",
       title: "Flight to NYC",
       description: "Business trip departure",
@@ -156,60 +178,6 @@ export default function Calendar() {
       color: "#8B5CF6",
     },
   ])
-
-  useEffect(() => {
-    if (!goals) return
-
-    const goalAndMilestoneEvents = goals.flatMap((goal) => {
-      const newEvents: CalendarEvent[] = []
-
-      // Add goal deadline
-      if (goal.dueDate) {
-        newEvents.push({
-          id: `goal-deadline-${goal.id}`,
-          title: `Deadline: ${goal.title}`,
-          description: goal.description,
-          date: goal.dueDate,
-          type: "goal",
-          goalId: String(goal.id),
-          completed: goal.status === "completed",
-          priority: "high",
-          color: eventTypes.find((t) => t.value === "goal")?.defaultColor || "#F87171",
-        })
-      }
-
-      // Add milestone deadlines
-      if (goal.milestones && goal.createdAt) {
-        const goalStartDate = new Date(goal.createdAt)
-        goal.milestones.forEach((milestone, index) => {
-          const milestoneDate = new Date(goalStartDate)
-          // Set date to the end of the milestone's week
-          milestoneDate.setDate(goalStartDate.getDate() + milestone.week * 7 - 1)
-
-          newEvents.push({
-            id: `milestone-${goal.id}-${index}`,
-            title: milestone.task,
-            date: milestoneDate.toISOString().split("T")[0],
-            type: "subgoal",
-            goalId: String(goal.id),
-            completed: milestone.status === "completed",
-            priority: "medium",
-            color: eventTypes.find((t) => t.value === "subgoal")?.defaultColor || "#FBBF24",
-          })
-        })
-      }
-      return newEvents
-    })
-
-    setEvents((prevEvents) => {
-      // Filter out any previous events that were generated from goals
-      const userAddedEvents = prevEvents.filter(
-        (e) => !e.id.startsWith("goal-deadline-") && !e.id.startsWith("milestone-"),
-      )
-      // Return user-added events plus the new goal-based events
-      return [...userAddedEvents, ...goalAndMilestoneEvents]
-    })
-  }, [goals])
 
   const monthNames = [
     "January",

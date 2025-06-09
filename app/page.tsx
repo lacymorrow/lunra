@@ -117,15 +117,13 @@ export default function LandingPage() {
                     <ArrowRight className="ml-3 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/explore-process">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light"
-                  >
-                    Explore the Process
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-lg px-8 py-6 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full font-light hidden"
+                >
+                  Explore the Process
+                </Button>
               </div>
               <div className="flex flex-wrap gap-6 text-sm text-stone-500 font-light">
                 <div className="flex items-center">
@@ -332,7 +330,7 @@ export default function LandingPage() {
               Begin freely, expand when you're ready for deeper support
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
               {
                 name: "Seedling",
@@ -364,6 +362,22 @@ export default function LandingPage() {
                 ],
                 cta: "Start Blooming",
                 popular: true,
+              },
+              {
+                name: "Garden",
+                price: "$19",
+                period: "per month",
+                description: "For teams cultivating shared visions together",
+                features: [
+                  "everything in Bloom",
+                  "collaborative spaces",
+                  "team insights",
+                  "shared celebrations",
+                  "custom integrations",
+                  "dedicated support",
+                ],
+                cta: "Grow Together",
+                popular: false,
               },
             ].map((plan, index) => (
               <Card
@@ -424,15 +438,13 @@ export default function LandingPage() {
                 <ArrowRight className="ml-3 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/explore-process">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white bg-white/20 hover:bg-white hover:text-stone-700 text-lg px-10 py-6 rounded-full font-light"
-              >
-                Explore the Process
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white bg-white/20 hover:bg-white hover:text-stone-700 text-lg px-10 py-6 rounded-full font-light"
+            >
+              Explore the Experience
+            </Button>
           </div>
           <p className="text-white/80 text-sm mt-8 font-light">
             no commitment required • always free to begin • ready in moments

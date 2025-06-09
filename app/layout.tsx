@@ -1,23 +1,24 @@
 import type React from "react"
-import type { Metadata } from "next"
-import ClientLayout from "./client-layout" // Import the ClientLayout
+import { Inter } from "next/font/google"
+import ClientLayout from "./client-layout" // Changed from { ClientLayout } to ClientLayout
 import "./globals.css"
 
-export const metadata: Metadata = {
-  title: "lunra - Mindful Goal Achievement",
-  description: "A gentle path to meaningful progress. Turn aspirations into realities, one thoughtful step at a time.",
-  generator: "v0.dev",
+const inter = Inter({ subsets: ["latin"] })
+
+export const metadata = {
+  title: "Goal Planning App",
+  description: "Plan and track your goals with ease",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en">
-      <body>
-        {/* Wrap children with ClientLayout */}
+      <body className={inter.className}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
