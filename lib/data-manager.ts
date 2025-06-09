@@ -1,6 +1,7 @@
 import type { SavedGoal } from "@/types"
 import { createGoal, getGoalById, getGoals, updateGoal, deleteGoal } from "@/lib/services/goals"
 import { convertDatabaseToLocalStorage } from "@/types/database"
+import { createClient } from "@/lib/supabase-client"
 
 // Local storage keys
 const GOALS_KEY = "savedGoals"
@@ -60,6 +61,7 @@ function deleteLocalGoal(id: number): void {
 // The main data manager class
 export class GoalDataManager {
   private userId: string | null = null
+  private supabase = createClient()
 
   constructor(userId?: string) {
     this.userId = userId || null
@@ -81,7 +83,7 @@ export class GoalDataManager {
     if (localGoals.length === 0) return
 
     // Get existing database goals to avoid duplicates
-    const dbGoals = await getGoals(this.userId!)
+    const dbGoals = await getGoals(this.supabase, this.userId!)
 
     // Create a map of titles to detect potential duplicates
     const dbGoalTitles = new Set(dbGoals.map((g) => g.title))
@@ -91,7 +93,7 @@ export class GoalDataManager {
       // Simple duplicate detection by title
       if (!dbGoalTitles.has(localGoal.title)) {
         try {
-          await createGoal(localGoal, this.userId!)
+          await createGoal(this.supabase, localGoal, this.userId!)
         } catch (error) {
           console.error(`Failed to sync goal "${localGoal.title}":`, error)
         }
@@ -106,7 +108,7 @@ export class GoalDataManager {
   async getGoals(): Promise<SavedGoal[]> {
     if (this.isAuthenticated) {
       try {
-        const dbGoals = await getGoals(this.userId!)
+        const dbGoals = await getGoals(this.supabase, this.userId!)
         return dbGoals.map(convertDatabaseToLocalStorage)
       } catch (error) {
         console.error("Error fetching goals from database:", error)
@@ -126,7 +128,7 @@ export class GoalDataManager {
           const localGoal = getLocalGoalById(id)
           if (!localGoal) return null
 
-          const dbGoals = await getGoals(this.userId!)
+          const dbGoals = await getGoals(this.supabase, this.userId!)
           const matchingGoal = dbGoals.find((g) => g.title === localGoal.title)
 
           if (matchingGoal) {
@@ -138,7 +140,7 @@ export class GoalDataManager {
         }
 
         // If it's a string, it's a database UUID
-        const dbGoal = await getGoalById(id as string, this.userId!)
+        const dbGoal = await getGoalById(this.supabase, id as string, this.userId!)
         return dbGoal ? convertDatabaseToLocalStorage(dbGoal) : null
       } catch (error) {
         console.error("Error fetching goal from database:", error)
@@ -161,7 +163,7 @@ export class GoalDataManager {
   async createGoal(goalData: Omit<SavedGoal, "id" | "createdAt">): Promise<SavedGoal> {
     if (this.isAuthenticated) {
       try {
-        const dbGoal = await createGoal(goalData, this.userId!)
+        const dbGoal = await createGoal(this.supabase, goalData, this.userId!)
         return convertDatabaseToLocalStorage(dbGoal!)
       } catch (error) {
         console.error("Error creating goal in database:", error)
@@ -182,16 +184,16 @@ export class GoalDataManager {
           const localGoal = getLocalGoalById(id)
           if (!localGoal) return null
 
-          const dbGoals = await getGoals(this.userId!)
+          const dbGoals = await getGoals(this.supabase, this.userId!)
           const matchingGoal = dbGoals.find((g) => g.title === localGoal.title)
 
           if (matchingGoal) {
             // Update the database goal
-            const updatedDbGoal = await updateGoal(matchingGoal.id as string, goalData, this.userId!)
+            const updatedDbGoal = await updateGoal(this.supabase, matchingGoal.id as string, goalData, this.userId!)
 
             // Get the full goal with milestones
             if (updatedDbGoal) {
-              const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
+              const fullGoal = await getGoalById(this.supabase, updatedDbGoal.id, this.userId!)
               return fullGoal ? convertDatabaseToLocalStorage(fullGoal) : null
             }
             return null
@@ -202,11 +204,11 @@ export class GoalDataManager {
         }
 
         // If it's a string, it's a database UUID
-        const updatedDbGoal = await updateGoal(id as string, goalData, this.userId!)
+        const updatedDbGoal = await updateGoal(this.supabase, id as string, goalData, this.userId!)
 
         // Get the full goal with milestones
         if (updatedDbGoal) {
-          const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
+          const fullGoal = await getGoalById(this.supabase, updatedDbGoal.id, this.userId!)
           return fullGoal ? convertDatabaseToLocalStorage(fullGoal) : null
         }
         return null
@@ -237,12 +239,12 @@ export class GoalDataManager {
           const localGoal = getLocalGoalById(id)
           if (!localGoal) return false
 
-          const dbGoals = await getGoals(this.userId!)
+          const dbGoals = await getGoals(this.supabase, this.userId!)
           const matchingGoal = dbGoals.find((g) => g.title === localGoal.title)
 
           if (matchingGoal) {
             // Delete the database goal
-            await deleteGoal(matchingGoal.id as string, this.userId!)
+            await deleteGoal(this.supabase, matchingGoal.id as string, this.userId!)
           }
 
           // Always delete the local goal
@@ -251,7 +253,7 @@ export class GoalDataManager {
         }
 
         // If it's a string, it's a database UUID
-        await deleteGoal(id as string, this.userId!)
+        await deleteGoal(this.supabase, id as string, this.userId!)
         return true
       } catch (error) {
         console.error("Error deleting goal from database:", error)

@@ -148,11 +148,10 @@ export default function Timeline() {
       <div className="h-[300px] flex items-end justify-between p-4 space-x-2">
         {data.map((item, index) => {
           const maxProgress = Math.max(
-            ...data.map((d) =>
-              Object.values(d)
-                .filter((v) => typeof v === "number")
-                .reduce((a: number, b: number) => Math.max(a, b), 0),
-            ),
+            ...data.map((d) => {
+              const numberValues = Object.values(d).filter((v) => typeof v === "number") as number[]
+              return numberValues.length > 0 ? Math.max(...numberValues) : 0
+            }),
           )
           const progress = (Object.values(item).filter((v) => typeof v === "number")[0] as number) || 0
           const height = maxProgress > 0 ? (progress / maxProgress) * 200 : 0

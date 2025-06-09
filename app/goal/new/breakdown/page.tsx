@@ -13,31 +13,13 @@ import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
-import { useGoalData, type SavedGoal as GoalDataContextSavedGoal } from "@/contexts/goal-data-context"
+import { useGoalData } from "@/contexts/goal-data-context"
+import type { SavedGoal } from "@/types"
 
 interface Goal {
   title: string
   description: string
   timeline: string
-}
-
-interface SavedGoal {
-  id: number
-  title: string
-  description: string
-  timeline: string
-  progress: number
-  status: string
-  dueDate: string
-  subGoals: string[]
-  completedSubGoals: number
-  createdAt: string
-  milestones: Array<{
-    week: number
-    task: string
-    status: string
-    progress: number
-  }>
 }
 
 export default function GoalBreakdown() {
@@ -188,7 +170,7 @@ export default function GoalBreakdown() {
         dueDate.setMonth(dueDate.getMonth() + 6)
       }
 
-      const newGoalToSave: Omit<GoalDataContextSavedGoal, "id" | "createdAt"> = {
+      const newGoalToSave: Omit<SavedGoal, "id" | "createdAt"> = {
         title: goal.title,
         description: goal.description || "",
         timeline: goal.timeline || "",
@@ -237,7 +219,7 @@ export default function GoalBreakdown() {
         description: `Creating ${allGeneratedGoals.length} personalized timelines`,
       })
 
-      const newGoalsToSave: Array<Omit<GoalDataContextSavedGoal, "id" | "createdAt">> = allGeneratedGoals.map(
+      const newGoalsToSave: Array<Omit<SavedGoal, "id" | "createdAt">> = allGeneratedGoals.map(
         (timeline) => {
           const dueDate = new Date()
           if (goal.timeline.toLowerCase().includes("month")) {

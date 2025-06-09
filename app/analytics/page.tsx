@@ -294,7 +294,9 @@ export default function Analytics() {
                     <LineChart data={progressData}>
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip>
+                        <ChartTooltipContent />
+                      </ChartTooltip>
                       {userGoals.map((goal, index) => {
                         const goalKey = goal.title.toLowerCase().replace(/[^a-z0-9]/g, "_")
                         const colors = ["#F87171", "#8EB69B", "#FBBF24", "#A78BFA"]
@@ -342,7 +344,9 @@ export default function Analytics() {
                     <BarChart data={weeklyActivity}>
                       <XAxis dataKey="day" />
                       <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip>
+                        <ChartTooltipContent />
+                      </ChartTooltip>
                       <Bar dataKey="tasks" fill="#F87171" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="checkins" fill="#8EB69B" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -387,7 +391,9 @@ export default function Analytics() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip>
+                        <ChartTooltipContent />
+                      </ChartTooltip>
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartContainer>

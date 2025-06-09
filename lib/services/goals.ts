@@ -1,11 +1,14 @@
-import { supabase } from "@/lib/supabase"
-import type { DatabaseGoal, DatabaseGoalWithMilestones } from "@/types/database"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { DatabaseGoal, DatabaseGoalWithMilestones, Database } from "@/types/database"
 import type { SavedGoal } from "@/types"
 import { convertLocalStorageToDatabase } from "@/types/database"
 
-export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
+export async function getGoals(
+  supabase: SupabaseClient<Database>, 
+  userId: string
+): Promise<DatabaseGoalWithMilestones[]> {
   // Use the custom function we created in our migration to get goals with stats
-  const { data, error } = await supabase().rpc("get_user_goals_with_stats", { user_uuid: userId })
+  const { data, error } = await supabase.rpc("get_user_goals_with_stats", { user_uuid: userId })
 
   if (error) {
     console.error("Error fetching goals:", error)
@@ -15,9 +18,13 @@ export async function getGoals(userId: string): Promise<DatabaseGoalWithMileston
   return data || []
 }
 
-export async function getGoalById(goalId: string, userId: string): Promise<DatabaseGoalWithMilestones | null> {
+export async function getGoalById(
+  supabase: SupabaseClient<Database>,
+  goalId: string, 
+  userId: string
+): Promise<DatabaseGoalWithMilestones | null> {
   // First get the goal
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("*")
     .eq("id", goalId)
@@ -32,7 +39,7 @@ export async function getGoalById(goalId: string, userId: string): Promise<Datab
   if (!goal) return null
 
   // Then get the milestones
-  const { data: milestones, error: milestonesError } = await supabase()
+  const { data: milestones, error: milestonesError } = await supabase
     .from("milestones")
     .select("*")
     .eq("goal_id", goalId)
@@ -49,6 +56,7 @@ export async function getGoalById(goalId: string, userId: string): Promise<Datab
 }
 
 export async function createGoal(
+  supabase: SupabaseClient<Database>,
   goalData: Omit<SavedGoal, "id" | "createdAt">,
   userId: string,
 ): Promise<DatabaseGoalWithMilestones | null> {
@@ -56,7 +64,7 @@ export async function createGoal(
   const dbGoalData = convertLocalStorageToDatabase(goalData)
 
   // Start a transaction
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .insert({
       ...dbGoalData,
@@ -80,7 +88,7 @@ export async function createGoal(
       progress: m.progress,
     }))
 
-    const { data: milestones, error: milestonesError } = await supabase()
+    const { data: milestones, error: milestonesError } = await supabase
       .from("milestones")
       .insert(milestonesToInsert)
       .select()
@@ -102,6 +110,7 @@ export async function createGoal(
 }
 
 export async function updateGoal(
+  supabase: SupabaseClient<Database>,
   goalId: string,
   goalData: Partial<SavedGoal>,
   userId: string,
@@ -110,7 +119,7 @@ export async function updateGoal(
   const dbGoalData = convertLocalStorageToDatabase(goalData)
 
   // Update the goal
-  const { data, error } = await supabase()
+  const { data, error } = await supabase
     .from("goals")
     .update(dbGoalData)
     .eq("id", goalId)
@@ -126,9 +135,13 @@ export async function updateGoal(
   return data
 }
 
-export async function deleteGoal(goalId: string, userId: string): Promise<void> {
+export async function deleteGoal(
+  supabase: SupabaseClient<Database>,
+  goalId: string, 
+  userId: string
+): Promise<void> {
   // Delete the goal (milestones will be cascade deleted due to our schema)
-  const { error } = await supabase().from("goals").delete().eq("id", goalId).eq("user_id", userId) // Security check
+  const { error } = await supabase.from("goals").delete().eq("id", goalId).eq("user_id", userId) // Security check
 
   if (error) {
     console.error("Error deleting goal:", error)

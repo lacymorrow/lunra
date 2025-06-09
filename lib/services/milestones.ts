@@ -1,9 +1,13 @@
-import { supabase } from "@/lib/supabase"
-import type { DatabaseMilestone } from "@/types/database"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { DatabaseMilestone, Database } from "@/types/database"
 
-export async function getMilestonesByGoalId(goalId: string, userId: string): Promise<DatabaseMilestone[]> {
+export async function getMilestonesByGoalId(
+  supabase: SupabaseClient<Database>,
+  goalId: string, 
+  userId: string
+): Promise<DatabaseMilestone[]> {
   // First verify the user owns this goal
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("id")
     .eq("id", goalId)
@@ -16,7 +20,7 @@ export async function getMilestonesByGoalId(goalId: string, userId: string): Pro
   }
 
   // Then get the milestones
-  const { data, error } = await supabase()
+  const { data, error } = await supabase
     .from("milestones")
     .select("*")
     .eq("goal_id", goalId)
@@ -31,11 +35,12 @@ export async function getMilestonesByGoalId(goalId: string, userId: string): Pro
 }
 
 export async function createMilestone(
+  supabase: SupabaseClient<Database>,
   milestone: Omit<DatabaseMilestone, "id" | "created_at" | "updated_at">,
   userId: string,
 ): Promise<DatabaseMilestone | null> {
   // First verify the user owns this goal
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("id")
     .eq("id", milestone.goal_id)
@@ -48,7 +53,7 @@ export async function createMilestone(
   }
 
   // Then create the milestone
-  const { data, error } = await supabase().from("milestones").insert(milestone).select().single()
+  const { data, error } = await supabase.from("milestones").insert(milestone).select().single()
 
   if (error) {
     console.error("Error creating milestone:", error)
@@ -59,12 +64,13 @@ export async function createMilestone(
 }
 
 export async function updateMilestone(
+  supabase: SupabaseClient<Database>,
   milestoneId: string,
   milestoneData: Partial<Omit<DatabaseMilestone, "id" | "goal_id" | "created_at" | "updated_at">>,
   userId: string,
 ): Promise<DatabaseMilestone | null> {
   // First get the milestone to verify ownership
-  const { data: milestone, error: milestoneError } = await supabase()
+  const { data: milestone, error: milestoneError } = await supabase
     .from("milestones")
     .select("goal_id")
     .eq("id", milestoneId)
@@ -76,7 +82,7 @@ export async function updateMilestone(
   }
 
   // Verify the user owns the goal this milestone belongs to
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("id")
     .eq("id", milestone.goal_id)
@@ -89,7 +95,7 @@ export async function updateMilestone(
   }
 
   // Update the milestone
-  const { data, error } = await supabase()
+  const { data, error } = await supabase
     .from("milestones")
     .update(milestoneData)
     .eq("id", milestoneId)
@@ -104,9 +110,13 @@ export async function updateMilestone(
   return data
 }
 
-export async function deleteMilestone(milestoneId: string, userId: string): Promise<void> {
+export async function deleteMilestone(
+  supabase: SupabaseClient<Database>,
+  milestoneId: string, 
+  userId: string
+): Promise<void> {
   // First get the milestone to verify ownership
-  const { data: milestone, error: milestoneError } = await supabase()
+  const { data: milestone, error: milestoneError } = await supabase
     .from("milestones")
     .select("goal_id")
     .eq("id", milestoneId)
@@ -118,7 +128,7 @@ export async function deleteMilestone(milestoneId: string, userId: string): Prom
   }
 
   // Verify the user owns the goal this milestone belongs to
-  const { data: goal, error: goalError } = await supabase()
+  const { data: goal, error: goalError } = await supabase
     .from("goals")
     .select("id")
     .eq("id", milestone.goal_id)
@@ -131,7 +141,7 @@ export async function deleteMilestone(milestoneId: string, userId: string): Prom
   }
 
   // Delete the milestone
-  const { error } = await supabase().from("milestones").delete().eq("id", milestoneId)
+  const { error } = await supabase.from("milestones").delete().eq("id", milestoneId)
 
   if (error) {
     console.error("Error deleting milestone:", error)
