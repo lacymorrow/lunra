@@ -1,5 +1,5 @@
+import { createGoal, deleteGoal, getGoalById, getGoals, updateGoal } from "@/lib/services/goals"
 import type { SavedGoal } from "@/types"
-import { createGoal, getGoalById, getGoals, updateGoal, deleteGoal } from "@/lib/services/goals"
 import { convertDatabaseToLocalStorage } from "@/types/database"
 
 // Local storage keys
@@ -74,32 +74,84 @@ export class GoalDataManager {
   }
 
   // Sync local goals to database when user logs in
-  async syncLocalGoalsToDatabase(): Promise<void> {
-    if (!this.isAuthenticated) return
-
-    const localGoals = getLocalGoals()
-    if (localGoals.length === 0) return
-
-    // Get existing database goals to avoid duplicates
-    const dbGoals = await getGoals(this.userId!)
-
-    // Create a map of titles to detect potential duplicates
-    const dbGoalTitles = new Set(dbGoals.map((g) => g.title))
-
-    // Upload each local goal that doesn't exist in the database
-    for (const localGoal of localGoals) {
-      // Simple duplicate detection by title
-      if (!dbGoalTitles.has(localGoal.title)) {
-        try {
-          await createGoal(localGoal, this.userId!)
-        } catch (error) {
-          console.error(`Failed to sync goal "${localGoal.title}":`, error)
-        }
-      }
+  async syncLocalGoalsToDatabase(): Promise<{
+    synced: number;
+    skipped: number;
+    errors: string[];
+    clearedLocal: boolean;
+  }> {
+    if (!this.isAuthenticated) {
+      return { synced: 0, skipped: 0, errors: [], clearedLocal: false }
     }
 
-    // Optionally clear local storage after sync
-    // localStorage.removeItem(GOALS_KEY)
+    const localGoals = getLocalGoals()
+    if (localGoals.length === 0) {
+      return { synced: 0, skipped: 0, errors: [], clearedLocal: false }
+    }
+
+    console.log(`🔄 Starting sync of ${localGoals.length} local goals to database`)
+
+    try {
+      // Get existing database goals to avoid duplicates
+      const dbGoals = await getGoals(this.userId!)
+      console.log(`📊 Found ${dbGoals.length} existing goals in database`)
+
+      // Create a comprehensive duplicate detection system
+      const dbGoalSignatures = new Set(
+        dbGoals.map(g => `${g.title.toLowerCase().trim()}|${g.description?.toLowerCase().trim() || ''}`)
+      )
+
+      let synced = 0
+      let skipped = 0
+      const errors: string[] = []
+
+      // Process each local goal
+      for (const [index, localGoal] of localGoals.entries()) {
+        const signature = `${localGoal.title.toLowerCase().trim()}|${(localGoal.description || '').toLowerCase().trim()}`
+
+        if (dbGoalSignatures.has(signature)) {
+          console.log(`⏭️  Skipping duplicate goal: "${localGoal.title}"`)
+          skipped++
+          continue
+        }
+
+        try {
+          console.log(`📤 Syncing goal ${index + 1}/${localGoals.length}: "${localGoal.title}"`)
+          await createGoal(localGoal, this.userId!)
+          synced++
+          console.log(`✅ Successfully synced: "${localGoal.title}"`)
+        } catch (error) {
+          const errorMsg = `Failed to sync "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
+          console.error(`❌ ${errorMsg}`)
+          errors.push(errorMsg)
+        }
+      }
+
+      // Clear local storage only if sync was successful for all non-duplicate goals
+      const shouldClearLocal = errors.length === 0 && (synced > 0 || skipped === localGoals.length)
+      if (shouldClearLocal) {
+        localStorage.removeItem(GOALS_KEY)
+        console.log(`🧹 Cleared local storage after successful sync`)
+      }
+
+      console.log(`🎉 Sync complete: ${synced} synced, ${skipped} skipped, ${errors.length} errors`)
+
+      return {
+        synced,
+        skipped,
+        errors,
+        clearedLocal: shouldClearLocal
+      }
+    } catch (error) {
+      const errorMsg = `Database sync failed: ${error instanceof Error ? error.message : String(error)}`
+      console.error(`💥 ${errorMsg}`)
+      return {
+        synced: 0,
+        skipped: 0,
+        errors: [errorMsg],
+        clearedLocal: false
+      }
+    }
   }
 
   // Core CRUD operations that work with both localStorage and database
@@ -192,7 +244,7 @@ export class GoalDataManager {
               goalData,
               this.userId!
             )
-            
+
             // Get the full goal with milestones
             if (updatedDbGoal) {
               const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
@@ -207,7 +259,7 @@ export class GoalDataManager {
 
         // If it's a string, it's a database UUID
         const updatedDbGoal = await updateGoal(id as string, goalData, this.userId!)
-        
+
         // Get the full goal with milestones
         if (updatedDbGoal) {
           const fullGoal = await getGoalById(updatedDbGoal.id, this.userId!)
@@ -331,7 +383,7 @@ export class GoalDataManager {
   async adjustTimeline(goalId: number): Promise<void> {
     const goal = await this.getGoalById(goalId)
     if (!goal) return
-    
+
     // This function would typically open a modal or navigate to a page
     // where the user can adjust the timeline of their goal
     // For now, we'll just log that this functionality is not yet implemented
@@ -339,7 +391,7 @@ export class GoalDataManager {
   }
 }
 
-  // Create a singleton instance
+// Create a singleton instance
 let dataManagerInstance: GoalDataManager | null = null
 
 export function getDataManager(userId?: string): GoalDataManager {

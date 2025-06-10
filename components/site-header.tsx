@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +11,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
-import { CreditCard, LogOut, Menu, Moon, User, X } from "lucide-react";
+import { useGoalData } from "@/contexts/goal-data-context";
+import { useLocalDataStatus } from "@/hooks/use-local-storage";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Cloud,
+  CloudOff,
+  CreditCard,
+  Database,
+  LogOut,
+  Menu,
+  Moon,
+  RefreshCw,
+  User,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -21,11 +37,95 @@ interface SiteHeaderProps {
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { syncStatus } = useGoalData();
+  const { hasLocalData, localDataCount } = useLocalDataStatus();
 
   const isLanding = variant === "landing";
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  // Sync status indicator component
+  const SyncStatusIndicator = () => {
+    if (isLanding || !user) {
+      // Show local storage indicator for unauthenticated users
+      if (hasLocalData) {
+        return (
+          <div className="flex items-center gap-1">
+            <CloudOff className="h-4 w-4 text-amber-500" />
+            <Badge variant="secondary" className="text-xs">
+              {localDataCount} Local
+            </Badge>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    // Authenticated user sync status
+    if (syncStatus.isLoading) {
+      return (
+        <div className="flex items-center gap-1">
+          <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+          <Badge variant="default" className="text-xs">
+            Syncing...
+          </Badge>
+        </div>
+      );
+    }
+
+    if (syncStatus.result) {
+      const { synced, errors, clearedLocal } = syncStatus.result;
+
+      if (errors.length > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <Badge variant="destructive" className="text-xs">
+              Sync Issues
+            </Badge>
+          </div>
+        );
+      }
+
+      if (clearedLocal && synced > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <Badge
+              variant="default"
+              className="text-xs bg-green-100 text-green-700"
+            >
+              Synced
+            </Badge>
+          </div>
+        );
+      }
+    }
+
+    if (hasLocalData) {
+      return (
+        <div className="flex items-center gap-1">
+          <Database className="h-4 w-4 text-amber-500" />
+          <Badge variant="secondary" className="text-xs">
+            {localDataCount} to Sync
+          </Badge>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        <Cloud className="h-4 w-4 text-green-500" />
+        <Badge
+          variant="default"
+          className="text-xs bg-green-100 text-green-700"
+        >
+          Cloud
+        </Badge>
+      </div>
+    );
   };
 
   return (
@@ -71,6 +171,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 </a>
               </div>
               <div className="flex items-center space-x-4">
+                <SyncStatusIndicator />
                 {user ? (
                   <Link href="/dashboard">
                     <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
@@ -139,6 +240,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               </div>
 
               <div className="flex items-center space-x-4">
+                <SyncStatusIndicator />
                 {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
