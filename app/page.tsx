@@ -1,23 +1,30 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { PricingButton } from "@/components/pricing-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Target,
-  Brain,
-  TrendingUp,
-  CheckCircle,
-  Calendar,
-  MessageCircle,
-  BarChart3,
-  Star,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   ArrowRight,
-  Sparkles,
+  BarChart3,
+  Brain,
+  Calendar,
+  CheckCircle,
   Clock,
   Heart,
-} from "lucide-react"
-import Link from "next/link"
+  MessageCircle,
+  Sparkles,
+  Star,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function LandingPage() {
   const features = [
@@ -49,7 +56,7 @@ export default function LandingPage() {
         "Beautiful insights that help you understand your patterns and celebrate every step of your journey.",
       color: "bg-sage-100 text-sage-600",
     },
-  ]
+  ];
 
   const testimonials = [
     {
@@ -73,14 +80,14 @@ export default function LandingPage() {
         "The weekly check-ins are like therapy sessions for my goals. I feel supported, not judged, every step of the way.",
       rating: 5,
     },
-  ]
+  ];
 
   const stats = [
     { number: "10,000+", label: "Dreams Realized" },
     { number: "85%", label: "Feel More Fulfilled" },
     { number: "4.9/5", label: "Love the Journey" },
     { number: "50+", label: "Countries Touched" },
-  ]
+  ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
@@ -104,8 +111,9 @@ export default function LandingPage() {
                 <span className="italic text-rose-500"> progress</span>
               </h1>
               <p className="text-xl text-stone-600 mb-10 leading-relaxed font-light max-w-xl">
-                A mindful approach to goal setting that honors your unique journey, celebrates small wins, and creates
-                lasting change through compassionate planning.
+                A mindful approach to goal setting that honors your unique
+                journey, celebrates small wins, and creates lasting change
+                through compassionate planning.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mb-10">
                 <Link href="/dashboard">
@@ -146,35 +154,49 @@ export default function LandingPage() {
               <div className="bg-white rounded-3xl shadow-2xl p-10 border border-stone-100">
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-serif text-stone-800">create a meaningful business</h3>
-                    <Badge className="bg-sage-100 text-sage-700 font-light rounded-full">flowing beautifully</Badge>
+                    <h3 className="text-xl font-serif text-stone-800">
+                      create a meaningful business
+                    </h3>
+                    <Badge className="bg-sage-100 text-sage-700 font-light rounded-full">
+                      flowing beautifully
+                    </Badge>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-sage-500 mr-4" />
-                      <span className="text-stone-700 font-light">explored my core values & vision</span>
+                      <span className="text-stone-700 font-light">
+                        explored my core values & vision
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <CheckCircle className="h-5 w-5 text-sage-500 mr-4" />
-                      <span className="text-stone-700 font-light">crafted a gentle business plan</span>
+                      <span className="text-stone-700 font-light">
+                        crafted a gentle business plan
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Clock className="h-5 w-5 text-amber-500 mr-4" />
-                      <span className="text-stone-700 font-light">building my online presence mindfully</span>
+                      <span className="text-stone-700 font-light">
+                        building my online presence mindfully
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Target className="h-5 w-5 text-stone-400 mr-4" />
-                      <span className="text-stone-500 font-light">preparing for soft launch</span>
+                      <span className="text-stone-500 font-light">
+                        preparing for soft launch
+                      </span>
                     </div>
                   </div>
                   <div className="bg-rose-50 p-6 rounded-2xl border border-rose-100">
                     <div className="flex items-start">
                       <Heart className="h-5 w-5 text-rose-500 mr-4 mt-1" />
                       <div>
-                        <p className="text-sm font-medium text-rose-800 mb-2">gentle wisdom</p>
+                        <p className="text-sm font-medium text-rose-800 mb-2">
+                          gentle wisdom
+                        </p>
                         <p className="text-sm text-rose-700 font-light leading-relaxed">
-                          You're moving at exactly the right pace. Trust the process and celebrate this beautiful
-                          progress.
+                          You're moving at exactly the right pace. Trust the
+                          process and celebrate this beautiful progress.
                         </p>
                       </div>
                     </div>
@@ -199,7 +221,9 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-4xl font-serif text-stone-800 mb-3">{stat.number}</div>
+                <div className="text-4xl font-serif text-stone-800 mb-3">
+                  {stat.number}
+                </div>
                 <div className="text-stone-600 font-light">{stat.label}</div>
               </div>
             ))}
@@ -208,13 +232,19 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 px-6" style={{ backgroundColor: "#faf8f5" }}>
+      <section
+        id="features"
+        className="py-24 px-6"
+        style={{ backgroundColor: "#faf8f5" }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-serif text-stone-800 mb-6">everything you need for mindful progress</h2>
+            <h2 className="text-4xl font-serif text-stone-800 mb-6">
+              everything you need for mindful progress
+            </h2>
             <p className="text-xl text-stone-600 max-w-3xl mx-auto font-light leading-relaxed">
-              We've thoughtfully crafted each feature to support your unique journey, honoring both your ambitions and
-              your well-being.
+              We've thoughtfully crafted each feature to support your unique
+              journey, honoring both your ambitions and your well-being.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -224,10 +254,14 @@ export default function LandingPage() {
                 className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl bg-white hover:scale-105 hover:-translate-y-1"
               >
                 <CardHeader className="pb-4">
-                  <div className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6`}>
+                  <div
+                    className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6`}
+                  >
                     <feature.icon className="h-7 w-7" />
                   </div>
-                  <CardTitle className="text-xl font-serif text-stone-800">{feature.title}</CardTitle>
+                  <CardTitle className="text-xl font-serif text-stone-800">
+                    {feature.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-stone-600 leading-relaxed font-light">
@@ -244,7 +278,9 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-24 bg-white px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-serif text-stone-800 mb-6">a gentle path to your dreams</h2>
+            <h2 className="text-4xl font-serif text-stone-800 mb-6">
+              a gentle path to your dreams
+            </h2>
             <p className="text-xl text-stone-600 font-light">
               Four thoughtful steps to transform your aspirations into reality
             </p>
@@ -254,25 +290,29 @@ export default function LandingPage() {
               {
                 step: "1",
                 title: "Share Your Heart",
-                description: "Tell us about your dreams and aspirations - we listen with care and without judgment.",
+                description:
+                  "Tell us about your dreams and aspirations - we listen with care and without judgment.",
                 icon: Heart,
               },
               {
                 step: "2",
                 title: "Gentle Exploration",
-                description: "Our AI asks thoughtful questions to understand your unique circumstances and desires.",
+                description:
+                  "Our AI asks thoughtful questions to understand your unique circumstances and desires.",
                 icon: Brain,
               },
               {
                 step: "3",
                 title: "Your Mindful Plan",
-                description: "Receive a beautiful roadmap designed specifically for your life, values, and timeline.",
+                description:
+                  "Receive a beautiful roadmap designed specifically for your life, values, and timeline.",
                 icon: Calendar,
               },
               {
                 step: "4",
                 title: "Compassionate Progress",
-                description: "Regular check-ins that celebrate your journey and gently guide you forward.",
+                description:
+                  "Regular check-ins that celebrate your journey and gently guide you forward.",
                 icon: TrendingUp,
               },
             ].map((item, index) => (
@@ -285,8 +325,12 @@ export default function LandingPage() {
                     <item.icon className="h-7 w-7 text-stone-600" />
                   </div>
                 </div>
-                <h3 className="text-xl font-serif text-stone-800 mb-4">{item.title}</h3>
-                <p className="text-stone-600 font-light leading-relaxed">{item.description}</p>
+                <h3 className="text-xl font-serif text-stone-800 mb-4">
+                  {item.title}
+                </h3>
+                <p className="text-stone-600 font-light leading-relaxed">
+                  {item.description}
+                </p>
               </div>
             ))}
           </div>
@@ -294,27 +338,45 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 px-6" style={{ backgroundColor: "#faf8f5" }}>
+      <section
+        id="testimonials"
+        className="py-24 px-6"
+        style={{ backgroundColor: "#faf8f5" }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-serif text-stone-800 mb-6">stories of gentle transformation</h2>
+            <h2 className="text-4xl font-serif text-stone-800 mb-6">
+              stories of gentle transformation
+            </h2>
             <p className="text-xl text-stone-600 font-light">
               Hear from dreamers who've found their way through mindful planning
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg bg-white rounded-3xl">
+              <Card
+                key={index}
+                className="border-0 shadow-lg bg-white rounded-3xl"
+              >
                 <CardContent className="p-8">
                   <div className="flex items-center mb-6">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-amber-400 fill-current" />
+                      <Star
+                        key={i}
+                        className="h-5 w-5 text-amber-400 fill-current"
+                      />
                     ))}
                   </div>
-                  <p className="text-stone-700 mb-8 leading-relaxed font-light italic">"{testimonial.content}"</p>
+                  <p className="text-stone-700 mb-8 leading-relaxed font-light italic">
+                    "{testimonial.content}"
+                  </p>
                   <div>
-                    <div className="font-serif text-stone-800 text-lg">{testimonial.name}</div>
-                    <div className="text-stone-500 text-sm font-light">{testimonial.role}</div>
+                    <div className="font-serif text-stone-800 text-lg">
+                      {testimonial.name}
+                    </div>
+                    <div className="text-stone-500 text-sm font-light">
+                      {testimonial.role}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -327,7 +389,9 @@ export default function LandingPage() {
       <section id="pricing" className="py-24 bg-white px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-serif text-stone-800 mb-6">choose your journey</h2>
+            <h2 className="text-4xl font-serif text-stone-800 mb-6">
+              choose your journey
+            </h2>
             <p className="text-xl text-stone-600 font-light">
               Begin freely, expand when you're ready for deeper support
             </p>
@@ -338,7 +402,8 @@ export default function LandingPage() {
                 name: "Seedling",
                 price: "$0",
                 period: "forever",
-                description: "Perfect for nurturing your first dreams into reality",
+                description:
+                  "Perfect for nurturing your first dreams into reality",
                 features: [
                   "3 cherished goals",
                   "gentle AI guidance",
@@ -353,7 +418,8 @@ export default function LandingPage() {
                 name: "Bloom",
                 price: "$9",
                 period: "per month",
-                description: "For dreamers ready to flourish with deeper support",
+                description:
+                  "For dreamers ready to flourish with deeper support",
                 features: [
                   "unlimited aspirations",
                   "advanced AI mentorship",
@@ -368,38 +434,55 @@ export default function LandingPage() {
             ].map((plan, index) => (
               <Card
                 key={index}
-                className={`relative border-0 shadow-lg rounded-3xl bg-white ${plan.popular ? "ring-2 ring-rose-300" : ""}`}
+                className={`relative border-0 shadow-lg rounded-3xl bg-white ${
+                  plan.popular ? "ring-2 ring-rose-300" : ""
+                }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-rose-400 text-white px-6 py-2 rounded-full font-light">most cherished</Badge>
+                    <Badge className="bg-rose-400 text-white px-6 py-2 rounded-full font-light">
+                      most cherished
+                    </Badge>
                   </div>
                 )}
                 <CardHeader className="text-center pb-8">
-                  <CardTitle className="text-2xl font-serif text-stone-800">{plan.name}</CardTitle>
+                  <CardTitle className="text-2xl font-serif text-stone-800">
+                    {plan.name}
+                  </CardTitle>
                   <div className="mt-6">
-                    <span className="text-4xl font-serif text-stone-800">{plan.price}</span>
-                    <span className="text-stone-600 font-light">/{plan.period}</span>
+                    <span className="text-4xl font-serif text-stone-800">
+                      {plan.price}
+                    </span>
+                    <span className="text-stone-600 font-light">
+                      /{plan.period}
+                    </span>
                   </div>
-                  <CardDescription className="mt-6 font-light leading-relaxed">{plan.description}</CardDescription>
+                  <CardDescription className="mt-6 font-light leading-relaxed">
+                    {plan.description}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="px-8 pb-8">
                   <ul className="space-y-4 mb-10">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
                         <CheckCircle className="h-5 w-5 text-sage-500 mr-4" />
-                        <span className="text-stone-700 font-light">{feature}</span>
+                        <span className="text-stone-700 font-light">
+                          {feature}
+                        </span>
                       </li>
                     ))}
                   </ul>
-                  <Link href="/dashboard" className="block">
-                    <Button
-                      className={`w-full rounded-full font-light ${plan.popular ? "bg-rose-400 hover:bg-rose-500 text-white" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
-                      variant={plan.popular ? "default" : "outline"}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
+                  <PricingButton
+                    planId={plan.name.toLowerCase() as "seedling" | "bloom"}
+                    className={`w-full rounded-full font-light ${
+                      plan.popular
+                        ? "bg-rose-400 hover:bg-rose-500 text-white"
+                        : "border-stone-300 text-stone-700 hover:bg-stone-50"
+                    }`}
+                    variant={plan.popular ? "default" : "outline"}
+                  >
+                    {plan.cta}
+                  </PricingButton>
                 </CardContent>
               </Card>
             ))}
@@ -410,9 +493,12 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-rose-400 via-amber-300 to-sage-400 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-serif text-white mb-8">ready to honor your dreams?</h2>
+          <h2 className="text-4xl font-serif text-white mb-8">
+            ready to honor your dreams?
+          </h2>
           <p className="text-xl text-white/90 mb-10 font-light">
-            Join thousands of mindful achievers who've discovered the joy of gentle, meaningful progress.
+            Join thousands of mindful achievers who've discovered the joy of
+            gentle, meaningful progress.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/dashboard">
@@ -440,5 +526,5 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }

@@ -2,42 +2,54 @@ import { createClient } from "@supabase/supabase-js"
 
 // Create a single supabase client for the browser
 export const createClientBrowser = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
+	const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    },
-  })
-}
+	console.log('🔍 [createClientBrowser] Environment check:', {
+		hasUrl: !!supabaseUrl,
+		hasAnonKey: !!supabaseAnonKey,
+		urlLength: supabaseUrl?.length || 0,
+		anonKeyLength: supabaseAnonKey?.length || 0,
+	})
 
-// Create a single supabase client for server components
-export const createClientServer = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
+	if (!supabaseUrl) {
+		console.error('❌ [createClientBrowser] NEXT_PUBLIC_SUPABASE_URL is missing')
+		throw new Error('NEXT_PUBLIC_SUPABASE_URL is required')
+	}
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
+	if (!supabaseAnonKey) {
+		console.error('❌ [createClientBrowser] NEXT_PUBLIC_SUPABASE_ANON_KEY is missing')
+		throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required')
+	}
+
+	console.log('✅ [createClientBrowser] Creating browser client')
+	return createClient(supabaseUrl, supabaseAnonKey, {
+		auth: {
+			persistSession: true,
+			autoRefreshToken: true,
+		},
+	})
 }
 
 // Client-side singleton
 let browserClient: ReturnType<typeof createClientBrowser> | null = null
 
 export const supabase = () => {
-  if (typeof window === "undefined") {
-    // Server-side: create a new client for each request
-    return createClientServer()
-  }
+	console.log('🔍 [supabase] Called from:', typeof window === "undefined" ? 'server' : 'client')
 
-  // Client-side: use singleton pattern
-  if (!browserClient) {
-    browserClient = createClientBrowser()
-  }
-  return browserClient
+	if (typeof window === "undefined") {
+		// Server-side: This should not be used for authenticated requests
+		// Use functions from lib/supabase-server.ts instead
+		console.warn('⚠️ [supabase] Server-side usage detected. Consider using lib/supabase-server.ts for authenticated requests')
+		return createClientBrowser() // Fallback for server components that need basic access
+	}
+
+	// Client-side: use singleton pattern
+	if (!browserClient) {
+		console.log('🔍 [supabase] Creating new browser client singleton')
+		browserClient = createClientBrowser()
+	} else {
+		console.log('🔍 [supabase] Using existing browser client singleton')
+	}
+	return browserClient
 }

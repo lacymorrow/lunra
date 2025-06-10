@@ -1,10 +1,6 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Moon, Menu, X, LogOut, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,21 +8,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/auth-context";
+import { CreditCard, LogOut, Menu, Moon, User, X } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 interface SiteHeaderProps {
-  variant?: "default" | "landing"
+  variant?: "default" | "landing";
 }
 
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
-  const isLanding = variant === "landing"
+  const isLanding = variant === "landing";
 
   const handleSignOut = async () => {
-    await signOut()
-  }
+    await signOut();
+  };
 
   return (
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
@@ -45,16 +45,28 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             // Landing page navigation
             <>
               <div className="hidden md:flex items-center space-x-10">
-                <a href="#features" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#features"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Features
                 </a>
-                <a href="#how-it-works" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#how-it-works"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   How it Works
                 </a>
-                <a href="#testimonials" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#testimonials"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Stories
                 </a>
-                <a href="#pricing" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#pricing"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Pricing
                 </a>
               </div>
@@ -68,7 +80,10 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 ) : (
                   <>
                     <Link href="/auth/signin">
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800"
+                      >
                         Sign In
                       </Button>
                     </Link>
@@ -85,22 +100,40 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             // App navigation
             <>
               <div className="hidden md:flex items-center space-x-8">
-                <Link href="/dashboard" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/dashboard"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Dashboard
                 </Link>
-                <Link href="/create-goal" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/create-goal"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Create Goal
                 </Link>
-                <Link href="/timeline" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/timeline"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Timeline
                 </Link>
-                <Link href="/calendar" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/calendar"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Calendar
                 </Link>
-                <Link href="/check-in" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/check-in"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Check-in
                 </Link>
-                <Link href="/analytics" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/analytics"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Analytics
                 </Link>
               </div>
@@ -109,7 +142,10 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800 rounded-full">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800 rounded-full"
+                      >
                         <User className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -117,11 +153,22 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                       <DropdownMenuLabel>
                         <div className="flex flex-col">
                           <span>My Account</span>
-                          <span className="text-xs text-stone-500 font-light">{user.email}</span>
+                          <span className="text-xs text-stone-500 font-light">
+                            {user.email}
+                          </span>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut} className="text-rose-500 cursor-pointer">
+                      <Link href="/billing">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Billing & Plans
+                        </DropdownMenuItem>
+                      </Link>
+                      <DropdownMenuItem
+                        onClick={handleSignOut}
+                        className="text-rose-500 cursor-pointer"
+                      >
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign out
                       </DropdownMenuItem>
@@ -137,8 +184,17 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             </>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
@@ -247,7 +303,9 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   Analytics
                 </Link>
                 <div className="pt-2 border-t border-stone-100">
-                  <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">New Goal</Button>
+                  <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                    New Goal
+                  </Button>
                 </div>
                 {user && (
                   <div className="pt-2 border-t border-stone-100">
@@ -266,5 +324,5 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
         </div>
       )}
     </header>
-  )
+  );
 }

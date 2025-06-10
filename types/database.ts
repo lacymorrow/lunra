@@ -25,6 +25,33 @@ export interface DatabaseMilestone {
   updated_at: string
 }
 
+// New subscription types
+export interface DatabaseSubscription {
+  id: string
+  user_id: string
+  stripe_customer_id: string
+  stripe_subscription_id: string | null
+  plan_id: "seedling" | "bloom"
+  status: "active" | "canceled" | "past_due" | "unpaid" | "incomplete"
+  current_period_start: string
+  current_period_end: string
+  cancel_at_period_end: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface DatabaseUserProfile {
+  id: string
+  user_id: string
+  full_name: string | null
+  avatar_url: string | null
+  plan_id: "seedling" | "bloom"
+  goals_limit: number
+  stripe_customer_id: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Extended type that includes milestone data
 export interface DatabaseGoalWithMilestones extends DatabaseGoal {
   milestones: DatabaseMilestone[]
@@ -84,6 +111,16 @@ export interface Database {
         Insert: Omit<DatabaseMilestone, "id" | "created_at" | "updated_at">
         Update: Partial<Omit<DatabaseMilestone, "id" | "goal_id" | "created_at" | "updated_at">>
       }
+      subscriptions: {
+        Row: DatabaseSubscription
+        Insert: Omit<DatabaseSubscription, "id" | "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseSubscription, "id" | "user_id" | "created_at" | "updated_at">>
+      }
+      user_profiles: {
+        Row: DatabaseUserProfile
+        Insert: Omit<DatabaseUserProfile, "id" | "created_at" | "updated_at">
+        Update: Partial<Omit<DatabaseUserProfile, "id" | "user_id" | "created_at" | "updated_at">>
+      }
     }
     Functions: {
       get_user_goals_with_stats: {
@@ -93,6 +130,10 @@ export interface Database {
       update_goal_progress: {
         Args: { goal_uuid: string }
         Returns: void
+      }
+      get_user_subscription: {
+        Args: { user_uuid: string }
+        Returns: DatabaseSubscription | null
       }
     }
   }
