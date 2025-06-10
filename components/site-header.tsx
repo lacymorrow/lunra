@@ -237,6 +237,23 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 >
                   Analytics
                 </Link>
+                {!user && (
+                  <>
+                    <Link href="/auth/signin">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800"
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/signup">
+                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center space-x-4">
@@ -277,8 +294,9 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+                {/* New Goal button remains here */}
                 <Link href="/create-goal">
-                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6 hidden md:flex">
+                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
                     New Goal
                   </Button>
                 </Link>

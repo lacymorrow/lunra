@@ -8,6 +8,7 @@ import { Calendar, Clock, Target, CheckCircle, Heart, Check, AlertCircle } from 
 import Link from "next/link"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useGoalData } from "@/contexts/goal-data-context"
+import { useSearchParams } from "next/navigation"
 
 interface SavedGoal {
   id: number
@@ -32,6 +33,7 @@ export default function Timeline() {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
   const { goals: userGoals, loading, error, dataManager, refreshGoals } = useGoalData()
   const [relatedGoals, setRelatedGoals] = useState<SavedGoal[]>([])
+  const searchParams = useSearchParams()
 
   // Add after the existing goal loading useEffect:
   useEffect(() => {
@@ -49,6 +51,27 @@ export default function Timeline() {
       }
     }
   }, [selectedGoalId, userGoals])
+
+  useEffect(() => {
+    const goalIdFromQuery = searchParams.get("goalId")
+    const numericGoalIdFromQuery = goalIdFromQuery ? Number.parseInt(goalIdFromQuery, 10) : null
+
+    if (numericGoalIdFromQuery !== null && !Number.isNaN(numericGoalIdFromQuery)) {
+      // If a valid goalId is found in the query, prioritize it
+      if (numericGoalIdFromQuery !== selectedGoalId) {
+        setSelectedGoalId(numericGoalIdFromQuery)
+      }
+    } else if (selectedGoalId === null && userGoals && userGoals.length > 0) {
+      // Fallback: If no goalId in query and no goal is selected yet, select the most recent one.
+      const sortedGoals = [...userGoals].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      if (sortedGoals.length > 0 && sortedGoals[0].id !== selectedGoalId) {
+        setSelectedGoalId(sortedGoals[0].id)
+      }
+    }
+    // If a goal is already selected and no overriding query param, do nothing to maintain current selection.
+  }, [searchParams, userGoals, selectedGoalId]) // Dependencies updated for stability
 
   // Scroll to top when page loads, especially when coming from goal creation
   useEffect(() => {
