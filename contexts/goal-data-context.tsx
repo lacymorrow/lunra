@@ -19,6 +19,7 @@ interface GoalDataContextType {
   loading: boolean;
   error: Error | null;
   refreshGoals: () => Promise<void>;
+  performSync: (manager: GoalDataManager) => Promise<void>;
   syncStatus: {
     isLoading: boolean;
     lastSync: Date | null;
@@ -118,17 +119,7 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Manually refresh goals after sync
-        setLoading(true);
-        setError(null);
-        try {
-          const fetchedGoals = await manager.getGoals();
-          setGoals(fetchedGoals);
-        } catch (err) {
-          console.error("Error fetching goals after sync:", err);
-          setError(err instanceof Error ? err : new Error(String(err)));
-        } finally {
-          setLoading(false);
-        }
+        await refreshGoals();
       } catch (err) {
         console.error("Error syncing goals:", err);
         setSyncStatus((prev) => ({
@@ -149,7 +140,7 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-    [toast]
+    [toast, refreshGoals]
   );
 
   // Update data manager when user changes
@@ -159,11 +150,106 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
 
     // If user just logged in, sync local goals to database
     if (user?.id) {
-      performSync(manager);
+      // Call performSync directly instead of through dependency
+      setSyncStatus((prev) => ({ ...prev, isLoading: true }));
+
+      const syncGoals = async () => {
+        try {
+          const result = await manager.syncLocalGoalsToDatabase();
+
+          setSyncStatus({
+            isLoading: false,
+            lastSync: new Date(),
+            result,
+          });
+
+          // Provide user feedback based on sync results
+          if (result.synced > 0) {
+            toast({
+              title: "🎉 Goals Synced Successfully!",
+              description: `${result.synced} goal${
+                result.synced > 1 ? "s" : ""
+              } transferred to your account.${
+                result.skipped > 0
+                  ? ` ${result.skipped} duplicate${
+                      result.skipped > 1 ? "s" : ""
+                    } skipped.`
+                  : ""
+              }`,
+            });
+          } else if (result.skipped > 0) {
+            toast({
+              title: "Goals Already Synced",
+              description: `All ${result.skipped} goal${
+                result.skipped > 1 ? "s were" : " was"
+              } already in your account.`,
+            });
+          }
+
+          if (result.errors.length > 0) {
+            toast({
+              title: "Sync Completed with Issues",
+              description: `${result.errors.length} goal${
+                result.errors.length > 1 ? "s" : ""
+              } failed to sync. Check console for details.`,
+              variant: "destructive",
+            });
+          }
+
+          // Manually refresh goals after sync
+          setLoading(true);
+          setError(null);
+          try {
+            const fetchedGoals = await manager.getGoals();
+            setGoals(fetchedGoals);
+          } catch (err) {
+            console.error("Error fetching goals after sync:", err);
+            setError(err instanceof Error ? err : new Error(String(err)));
+          } finally {
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error("Error syncing goals:", err);
+          setSyncStatus((prev) => ({
+            ...prev,
+            isLoading: false,
+            result: {
+              synced: 0,
+              skipped: 0,
+              errors: [err instanceof Error ? err.message : String(err)],
+              clearedLocal: false,
+            },
+          }));
+
+          toast({
+            title: "Sync Failed",
+            description: "Unable to sync your goals. Please try again later.",
+            variant: "destructive",
+          });
+        }
+      };
+
+      syncGoals();
     } else {
-      refreshGoals();
+      // Refresh goals for non-authenticated users
+      const loadGoals = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          const fetchedGoals = await manager.getGoals();
+          setGoals(fetchedGoals);
+        } catch (err) {
+          console.error("Error fetching goals:", err);
+          setError(err instanceof Error ? err : new Error(String(err)));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadGoals();
     }
-  }, [user?.id, performSync]);
+  }, [user?.id, toast]); // Only depend on user?.id and toast
 
   return (
     <GoalDataContext.Provider
@@ -173,6 +259,7 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
         loading,
         error,
         refreshGoals,
+        performSync,
         syncStatus,
       }}
     >

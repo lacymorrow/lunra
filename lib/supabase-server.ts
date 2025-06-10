@@ -2,10 +2,10 @@ import "server-only"
 
 import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 // Create a supabase client for server-side API routes with user authentication
-export const createClientServerWithAuth = (request: NextRequest) => {
+export const createClientServerWithAuth = (request: NextRequest, response?: NextResponse) => {
 	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
 	const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 
@@ -31,14 +31,21 @@ export const createClientServerWithAuth = (request: NextRequest) => {
 	return createServerClient(supabaseUrl, supabaseAnonKey, {
 		cookies: {
 			getAll() {
-				return request.cookies.getAll().map(cookie => ({
+				const cookies = request.cookies.getAll().map(cookie => ({
 					name: cookie.name,
 					value: cookie.value
-				}))
+				}));
+				console.log('🍪 [createClientServerWithAuth] Getting cookies:', cookies.map(c => c.name));
+				return cookies;
 			},
 			setAll(cookiesToSet) {
-				// For API routes, we don't set cookies back to the request
-				// This is handled by the response
+				console.log('🍪 [createClientServerWithAuth] Setting cookies:', cookiesToSet.map(c => c.name));
+				// Store cookies to be set in response (handled by the caller)
+				if (response) {
+					cookiesToSet.forEach(({ name, value, options }) => {
+						response.cookies.set(name, value, options);
+					});
+				}
 			},
 		},
 	})

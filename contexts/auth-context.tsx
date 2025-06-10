@@ -101,9 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: authListener } = supabase().auth.onAuthStateChange(
       async (event, currentSession) => {
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        const newUser = currentSession?.user ?? null;
+        setUser(newUser);
 
-        if (currentSession?.user) {
+        if (newUser) {
+          // Call refreshProfile directly here instead of depending on it in useEffect
           await refreshProfile();
         } else {
           setUserProfile(null);
@@ -126,10 +128,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       const { data } = await supabase().auth.getSession();
       setSession(data.session);
-      setUser(data.session?.user ?? null);
+      const initialUser = data.session?.user ?? null;
+      setUser(initialUser);
 
-      if (data.session?.user) {
-        await refreshProfile();
+      if (initialUser) {
+        // Use a local refreshProfile function to avoid dependency issues
+        try {
+          let profile = await getUserProfileClient(initialUser.id);
+          if (!profile) {
+            profile = await createUserProfileClient(initialUser.id, {
+              full_name:
+                initialUser.user_metadata?.full_name ||
+                initialUser.email?.split("@")[0] ||
+                null,
+            });
+          }
+          setUserProfile(profile);
+
+          const sub = await getUserSubscriptionClient(initialUser.id);
+          setSubscription(sub);
+        } catch (error) {
+          console.error(
+            "💥 [AuthContext] Error fetching user profile/subscription:",
+            error
+          );
+        }
       }
 
       setIsLoading(false);
@@ -140,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, refreshProfile]);
+  }, [router]); // Only depend on router, not refreshProfile
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({

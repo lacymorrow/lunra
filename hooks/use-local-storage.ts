@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 interface LocalStorageHook<T> {
     value: T | null
@@ -15,11 +15,17 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
     const [value, setValue] = useState<T | null>(defaultValue)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<Error | null>(null)
+    const defaultValueRef = useRef(defaultValue)
 
-    // Read from localStorage
+    // Update ref when defaultValue changes
+    useEffect(() => {
+        defaultValueRef.current = defaultValue
+    }, [defaultValue])
+
+    // Read from localStorage - stabilized function
     const readValue = useCallback(() => {
         if (typeof window === "undefined") {
-            return defaultValue
+            return defaultValueRef.current
         }
 
         try {
@@ -28,7 +34,7 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
 
             const item = localStorage.getItem(key)
             if (item === null) {
-                return defaultValue
+                return defaultValueRef.current
             }
 
             return JSON.parse(item) as T
@@ -36,11 +42,11 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
             const error = err instanceof Error ? err : new Error(`Failed to read localStorage key "${key}"`)
             setError(error)
             console.error("localStorage read error:", error)
-            return defaultValue
+            return defaultValueRef.current
         } finally {
             setLoading(false)
         }
-    }, [key, defaultValue])
+    }, [key]) // Only depend on key, not defaultValue
 
     // Write to localStorage
     const writeValue = useCallback((newValue: T | null) => {
@@ -76,11 +82,28 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
         setValue(newValue)
     }, [readValue])
 
-    // Initialize value on mount
+    // Initialize value on mount - only run once
     useEffect(() => {
-        const initialValue = readValue()
-        setValue(initialValue)
-    }, [readValue])
+        if (typeof window === "undefined") {
+            return
+        }
+
+        try {
+            setLoading(true)
+            setError(null)
+
+            const item = localStorage.getItem(key)
+            const initialValue = item === null ? defaultValueRef.current : JSON.parse(item) as T
+            setValue(initialValue)
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(`Failed to read localStorage key "${key}"`)
+            setError(error)
+            console.error("localStorage read error:", error)
+            setValue(defaultValueRef.current)
+        } finally {
+            setLoading(false)
+        }
+    }, [key]) // Only depend on key
 
     // Listen for localStorage changes from other tabs/windows
     useEffect(() => {

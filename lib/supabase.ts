@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { createBrowserClient } from "@supabase/ssr"
 
 // Create a single supabase client for the browser
 export const createClientBrowser = () => {
@@ -23,12 +23,7 @@ export const createClientBrowser = () => {
 	}
 
 	console.log('✅ [createClientBrowser] Creating browser client')
-	return createClient(supabaseUrl, supabaseAnonKey, {
-		auth: {
-			persistSession: true,
-			autoRefreshToken: true,
-		},
-	})
+	return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
 // Client-side singleton
