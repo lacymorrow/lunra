@@ -3,18 +3,34 @@ import { PLANS, stripe } from '@/lib/stripe'
 import { headers } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
 export async function POST(request: NextRequest) {
 	const body = await request.text()
-	const signature = headers().get('stripe-signature')!
+	const signature = headers().get('stripe-signature')
+	const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 	let event: any
 
+	// Check if webhook secret is configured
+	if (!webhookSecret) {
+		console.error('🚨 [webhook] STRIPE_WEBHOOK_SECRET not configured!')
+		console.error('🚨 [webhook] Webhooks will not work properly')
+		console.error('🚨 [webhook] Add STRIPE_WEBHOOK_SECRET to your environment variables')
+		return NextResponse.json({
+			error: 'Webhook secret not configured',
+			message: 'Add STRIPE_WEBHOOK_SECRET to your environment variables'
+		}, { status: 500 })
+	}
+
+	if (!signature) {
+		console.error('❌ [webhook] No Stripe signature found in request headers')
+		return NextResponse.json({ error: 'No signature' }, { status: 400 })
+	}
+
 	try {
 		event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+		console.log('✅ [webhook] Webhook signature verified successfully')
 	} catch (err) {
-		console.error('Webhook signature verification failed:', err)
+		console.error('❌ [webhook] Webhook signature verification failed:', err)
 		return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
 	}
 

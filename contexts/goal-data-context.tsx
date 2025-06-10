@@ -5,7 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import { type GoalDataManager, getDataManager } from "@/lib/data-manager";
 import type { SavedGoal } from "@/types";
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface GoalDataContextType {
   dataManager: GoalDataManager;
@@ -49,88 +55,8 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
     } | null,
   });
 
-  // Update data manager when user changes
-  useEffect(() => {
-    const manager = getDataManager(user?.id || undefined);
-    setDataManager(manager);
-
-    // If user just logged in, sync local goals to database
-    if (user?.id) {
-      performSync(manager);
-    } else {
-      refreshGoals();
-    }
-  }, [user?.id]);
-
-  const performSync = async (manager: GoalDataManager) => {
-    setSyncStatus((prev) => ({ ...prev, isLoading: true }));
-
-    try {
-      const result = await manager.syncLocalGoalsToDatabase();
-
-      setSyncStatus({
-        isLoading: false,
-        lastSync: new Date(),
-        result,
-      });
-
-      // Provide user feedback based on sync results
-      if (result.synced > 0) {
-        toast({
-          title: "🎉 Goals Synced Successfully!",
-          description: `${result.synced} goal${
-            result.synced > 1 ? "s" : ""
-          } transferred to your account.${
-            result.skipped > 0
-              ? ` ${result.skipped} duplicate${
-                  result.skipped > 1 ? "s" : ""
-                } skipped.`
-              : ""
-          }`,
-        });
-      } else if (result.skipped > 0) {
-        toast({
-          title: "Goals Already Synced",
-          description: `All ${result.skipped} goal${
-            result.skipped > 1 ? "s were" : " was"
-          } already in your account.`,
-        });
-      }
-
-      if (result.errors.length > 0) {
-        toast({
-          title: "Sync Completed with Issues",
-          description: `${result.errors.length} goal${
-            result.errors.length > 1 ? "s" : ""
-          } failed to sync. Check console for details.`,
-          variant: "destructive",
-        });
-      }
-
-      await refreshGoals();
-    } catch (err) {
-      console.error("Error syncing goals:", err);
-      setSyncStatus((prev) => ({
-        ...prev,
-        isLoading: false,
-        result: {
-          synced: 0,
-          skipped: 0,
-          errors: [err instanceof Error ? err.message : String(err)],
-          clearedLocal: false,
-        },
-      }));
-
-      toast({
-        title: "Sync Failed",
-        description: "Unable to sync your goals. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Function to refresh goals
-  const refreshGoals = async () => {
+  const refreshGoals = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -143,7 +69,101 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dataManager]);
+
+  const performSync = useCallback(
+    async (manager: GoalDataManager) => {
+      setSyncStatus((prev) => ({ ...prev, isLoading: true }));
+
+      try {
+        const result = await manager.syncLocalGoalsToDatabase();
+
+        setSyncStatus({
+          isLoading: false,
+          lastSync: new Date(),
+          result,
+        });
+
+        // Provide user feedback based on sync results
+        if (result.synced > 0) {
+          toast({
+            title: "🎉 Goals Synced Successfully!",
+            description: `${result.synced} goal${
+              result.synced > 1 ? "s" : ""
+            } transferred to your account.${
+              result.skipped > 0
+                ? ` ${result.skipped} duplicate${
+                    result.skipped > 1 ? "s" : ""
+                  } skipped.`
+                : ""
+            }`,
+          });
+        } else if (result.skipped > 0) {
+          toast({
+            title: "Goals Already Synced",
+            description: `All ${result.skipped} goal${
+              result.skipped > 1 ? "s were" : " was"
+            } already in your account.`,
+          });
+        }
+
+        if (result.errors.length > 0) {
+          toast({
+            title: "Sync Completed with Issues",
+            description: `${result.errors.length} goal${
+              result.errors.length > 1 ? "s" : ""
+            } failed to sync. Check console for details.`,
+            variant: "destructive",
+          });
+        }
+
+        // Manually refresh goals after sync
+        setLoading(true);
+        setError(null);
+        try {
+          const fetchedGoals = await manager.getGoals();
+          setGoals(fetchedGoals);
+        } catch (err) {
+          console.error("Error fetching goals after sync:", err);
+          setError(err instanceof Error ? err : new Error(String(err)));
+        } finally {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error syncing goals:", err);
+        setSyncStatus((prev) => ({
+          ...prev,
+          isLoading: false,
+          result: {
+            synced: 0,
+            skipped: 0,
+            errors: [err instanceof Error ? err.message : String(err)],
+            clearedLocal: false,
+          },
+        }));
+
+        toast({
+          title: "Sync Failed",
+          description: "Unable to sync your goals. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
+
+  // Update data manager when user changes
+  useEffect(() => {
+    const manager = getDataManager(user?.id || undefined);
+    setDataManager(manager);
+
+    // If user just logged in, sync local goals to database
+    if (user?.id) {
+      performSync(manager);
+    } else {
+      refreshGoals();
+    }
+  }, [user?.id, performSync]);
 
   return (
     <GoalDataContext.Provider

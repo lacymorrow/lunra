@@ -14,6 +14,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   // Function to refresh user profile and subscription
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) {
       console.log("🔍 [AuthContext] refreshProfile: no user, skipping");
       return;
@@ -94,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error
       );
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     const { data: authListener } = supabase().auth.onAuthStateChange(
@@ -139,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, refreshProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({

@@ -110,7 +110,7 @@ function DashboardContent() {
           "No worries! You can upgrade anytime from the billing page.",
       });
     }
-  }, [searchParams, toast, refreshProfile]);
+  }, [searchParams, toast]); // Removed refreshProfile from dependencies
 
   // Sample calendar events (matching the calendar page)
   const [calendarEvents] = useState([

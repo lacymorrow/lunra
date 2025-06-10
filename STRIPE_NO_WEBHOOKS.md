@@ -147,3 +147,70 @@ Any future date for expiry, any CVC, any ZIP code.
 - Verify subscription tables were created correctly
 - Check Supabase permissions and RLS policies
 - Look at server logs for specific error messages
+
+# 🚨 Missing Stripe Webhook Configuration
+
+## Problem Detected
+
+Your payment system is configured but the `STRIPE_WEBHOOK_SECRET` environment variable is missing. This means:
+
+✅ **Payments work** - users can complete checkout  
+❌ **Permissions don't update** - because webhooks can't process subscription events
+
+## Quick Fix Options
+
+### Option 1: Add Webhook Secret (Recommended for Production)
+
+1. **Create webhook endpoint in Stripe Dashboard:**
+   - Go to <https://dashboard.stripe.com/webhooks>
+   - Click "Add endpoint"
+   - Endpoint URL: `https://yourdomain.com/api/stripe/webhook` (or `http://localhost:3000/api/stripe/webhook` for dev)
+   - Events to send:
+     - `checkout.session.completed`
+     - `customer.subscription.updated`
+     - `customer.subscription.deleted`
+     - `invoice.payment_failed`
+
+2. **Copy the webhook secret:**
+   - After creating the webhook, click on it
+   - Reveal the webhook secret (starts with `whsec_...`)
+   - Add to your `.env.local`:
+
+   ```bash
+   STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+   ```
+
+3. **Restart your development server**
+
+### Option 2: Manual Sync (Temporary Workaround)
+
+If users complete payments but don't get permissions:
+
+1. Have them visit `/billing` page
+2. Click "Sync Status" button  
+3. This will manually sync their subscription
+
+### Option 3: Disable Webhook Validation (NOT RECOMMENDED)
+
+Only for development testing - never use in production.
+
+## Testing After Fix
+
+Run this to verify everything works:
+
+```bash
+curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
+```
+
+Should show `"overallHealth": "healthy"`
+
+## How to Test a Complete Payment Flow
+
+1. Go to your app's pricing page
+2. Click "Upgrade to Bloom"
+3. Use test card: `4242 4242 4242 4242`
+4. Complete payment
+5. Check that user's plan is updated to "Bloom"
+6. Verify they can create unlimited goals
+
+The webhook processing ensures immediate permission updates after payment!
