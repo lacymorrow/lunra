@@ -1,10 +1,19 @@
 "use client";
 
+import {
+  getUserProfileClient,
+  getUserSubscriptionClient,
+} from "@/lib/services/subscriptions-client";
 import { supabase } from "@/lib/supabase";
+import type {
+  DatabaseSubscription,
+  DatabaseUserProfile,
+} from "@/types/database";
 import type { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -14,7 +23,10 @@ import {
 type AuthContextType = {
   user: User | null;
   session: Session | null;
+  userProfile: DatabaseUserProfile | null;
+  userSubscription: DatabaseSubscription | null;
   isLoading: boolean;
+  isDataLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (
     email: string,
@@ -22,6 +34,7 @@ type AuthContextType = {
   ) => Promise<{ error: any; data: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,8 +42,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [userProfile, setUserProfile] = useState<DatabaseUserProfile | null>(
+    null
+  );
+  const [userSubscription, setUserSubscription] =
+    useState<DatabaseSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
   const router = useRouter();
+
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) {
+      setUserProfile(null);
+      setUserSubscription(null);
+      return;
+    }
+
+    setIsDataLoading(true);
+    try {
+      const [profile, subscription] = await Promise.all([
+        getUserProfileClient(user.id),
+        getUserSubscriptionClient(user.id),
+      ]);
+
+      setUserProfile(profile);
+      setUserSubscription(subscription);
+    } catch (error) {
+      console.error("Error refreshing profile data:", error);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     const { data: authListener } = supabase().auth.onAuthStateChange(
@@ -39,8 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
 
+        // Load profile and subscription data when user signs in
+        if (currentSession?.user) {
+          await refreshProfile();
+        } else {
+          setUserProfile(null);
+          setUserSubscription(null);
+        }
+
         if (event === "SIGNED_OUT") {
           // Handle sign out (e.g., redirect to login)
+          setUserProfile(null);
+          setUserSubscription(null);
           router.push("/auth/signin");
         } else if (event === "SIGNED_IN") {
           // Handle sign in (e.g., redirect to dashboard)
@@ -55,6 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setIsLoading(false);
+
+      // Load profile data if we have a user
+      if (data.session?.user) {
+        await refreshProfile();
+      }
     };
 
     initializeAuth();
@@ -62,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, refreshProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({
@@ -94,11 +151,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     session,
+    userProfile,
+    userSubscription,
     isLoading,
+    isDataLoading,
     signIn,
     signUp,
     signOut,
     resetPassword,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
