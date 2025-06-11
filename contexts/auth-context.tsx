@@ -1,20 +1,10 @@
 "use client";
 
-import {
-  createUserProfileClient,
-  getUserProfileClient,
-  getUserSubscriptionClient,
-} from "@/lib/services/subscriptions-client";
 import { supabase } from "@/lib/supabase";
-import type {
-  DatabaseSubscription,
-  DatabaseUserProfile,
-} from "@/types/database";
 import type { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useState,
@@ -24,8 +14,6 @@ import {
 type AuthContextType = {
   user: User | null;
   session: Session | null;
-  userProfile: DatabaseUserProfile | null;
-  subscription: DatabaseSubscription | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (
@@ -34,7 +22,6 @@ type AuthContextType = {
   ) => Promise<{ error: any; data: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
-  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,76 +29,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<DatabaseUserProfile | null>(
-    null
-  );
-  const [subscription, setSubscription] = useState<DatabaseSubscription | null>(
-    null
-  );
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  // Function to refresh user profile and subscription
-  const refreshProfile = useCallback(async () => {
-    if (!user) {
-      console.log("🔍 [AuthContext] refreshProfile: no user, skipping");
-      return;
-    }
-
-    console.log("🔄 [AuthContext] refreshProfile: starting for user", user.id);
-
-    try {
-      let profile = await getUserProfileClient(user.id);
-      console.log("👤 [AuthContext] refreshProfile: profile result", {
-        hasProfile: !!profile,
-        profileId: profile?.id,
-        planId: profile?.plan_id,
-      });
-
-      if (!profile) {
-        console.log("👤 [AuthContext] refreshProfile: creating new profile");
-        profile = await createUserProfileClient(user.id, {
-          full_name:
-            user.user_metadata?.full_name || user.email?.split("@")[0] || null,
-        });
-        console.log(
-          "👤 [AuthContext] refreshProfile: created profile",
-          !!profile
-        );
-      }
-      setUserProfile(profile);
-
-      const sub = await getUserSubscriptionClient(user.id);
-      console.log("📋 [AuthContext] refreshProfile: subscription result", {
-        hasSubscription: !!sub,
-        subscriptionId: sub?.id,
-        status: sub?.status,
-        planId: sub?.plan_id,
-      });
-      setSubscription(sub);
-    } catch (error) {
-      console.error(
-        "💥 [AuthContext] Error fetching user profile/subscription:",
-        error
-      );
-    }
-  }, [user]);
 
   useEffect(() => {
     const { data: authListener } = supabase().auth.onAuthStateChange(
       async (event, currentSession) => {
         setSession(currentSession);
-        const newUser = currentSession?.user ?? null;
-        setUser(newUser);
-
-        if (newUser) {
-          // Call refreshProfile directly here instead of depending on it in useEffect
-          await refreshProfile();
-        } else {
-          setUserProfile(null);
-          setSubscription(null);
-        }
-
+        setUser(currentSession?.user ?? null);
         setIsLoading(false);
 
         if (event === "SIGNED_OUT") {
@@ -128,33 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       const { data } = await supabase().auth.getSession();
       setSession(data.session);
-      const initialUser = data.session?.user ?? null;
-      setUser(initialUser);
-
-      if (initialUser) {
-        // Use a local refreshProfile function to avoid dependency issues
-        try {
-          let profile = await getUserProfileClient(initialUser.id);
-          if (!profile) {
-            profile = await createUserProfileClient(initialUser.id, {
-              full_name:
-                initialUser.user_metadata?.full_name ||
-                initialUser.email?.split("@")[0] ||
-                null,
-            });
-          }
-          setUserProfile(profile);
-
-          const sub = await getUserSubscriptionClient(initialUser.id);
-          setSubscription(sub);
-        } catch (error) {
-          console.error(
-            "💥 [AuthContext] Error fetching user profile/subscription:",
-            error
-          );
-        }
-      }
-
+      setUser(data.session?.user ?? null);
       setIsLoading(false);
     };
 
@@ -163,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router]); // Only depend on router, not refreshProfile
+  }, [router]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({
@@ -195,14 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     session,
-    userProfile,
-    subscription,
     isLoading,
     signIn,
     signUp,
     signOut,
     resetPassword,
-    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
