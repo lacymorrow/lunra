@@ -5,19 +5,19 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
 	const body = await request.text()
-	const signature = headers().get('stripe-signature')
-	const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+	const signature = (await headers()).get('stripe-signature')
+	const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_THIN
 
 	let event: any
 
 	// Check if webhook secret is configured
 	if (!webhookSecret) {
-		console.error('🚨 [webhook] STRIPE_WEBHOOK_SECRET not configured!')
+		console.error('🚨 [webhook] STRIPE_WEBHOOK_SECRET_THIN not configured!')
 		console.error('🚨 [webhook] Webhooks will not work properly')
-		console.error('🚨 [webhook] Add STRIPE_WEBHOOK_SECRET to your environment variables')
+		console.error('🚨 [webhook] Add STRIPE_WEBHOOK_SECRET_THIN to your environment variables')
 		return NextResponse.json({
 			error: 'Webhook secret not configured',
-			message: 'Add STRIPE_WEBHOOK_SECRET to your environment variables'
+			message: 'Add STRIPE_WEBHOOK_SECRET_THIN to your environment variables'
 		}, { status: 500 })
 	}
 
