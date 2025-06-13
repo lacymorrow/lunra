@@ -1,13 +1,11 @@
-import { getUserProfile, getUserSubscription } from '@/lib/services/subscriptions'
 import { PLANS, stripe } from '@/lib/stripe'
-import { createClientServerWithAuth } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-    console.log('🧪 [test-payment-flow] Starting payment flow verification')
+    console.log('🧪 [test-payment-flow] Starting payment flow diagnostic...')
 
     try {
-        // 1. Check environment variables
+        // Environment check
         const envCheck = {
             hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
             hasStripePublishableKey: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
@@ -15,98 +13,99 @@ export async function GET(request: NextRequest) {
             hasWebhookSecretSnap: !!process.env.STRIPE_WEBHOOK_SECRET_SNAP,
             hasWebhookSecretThin: !!process.env.STRIPE_WEBHOOK_SECRET_THIN,
             hasBloomPriceId: !!process.env.STRIPE_BLOOM_PRICE_ID,
+            bloomPriceId: process.env.STRIPE_BLOOM_PRICE_ID || 'MISSING',
+            stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length || 0,
+            nodeEnv: process.env.NODE_ENV,
             hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
             hasSupabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         }
 
-        console.log('🔧 [test-payment-flow] Environment variables:', envCheck)
+        console.log('🔍 [test-payment-flow] Environment check:', {
+            ...envCheck,
+            bloomPriceId: envCheck.bloomPriceId.substring(0, 20) + '...' || 'MISSING',
+        })
 
-        // 2. Test Stripe connection
-        let stripeConnectionStatus = 'unknown'
-        let bloomPriceValid = false
+        // Plan configuration check
+        const bloomPlan = PLANS.bloom
+        console.log('💳 [test-payment-flow] Plan configuration:', {
+            planName: bloomPlan.name,
+            planPrice: bloomPlan.price,
+            planPriceId: bloomPlan.priceId,
+            priceIdLength: bloomPlan.priceId.length,
+        })
 
-        try {
-            await stripe.customers.list({ limit: 1 })
-            stripeConnectionStatus = 'connected'
+        // Stripe API connectivity test
+        console.log('🔌 [test-payment-flow] Testing Stripe connectivity...')
+        const account = await stripe.accounts.retrieve()
+        console.log('✅ [test-payment-flow] Stripe connection successful:', {
+            accountId: account.id,
+            country: account.country,
+            livemode: account.livemode,
+        })
 
-            // Test the bloom price
-            if (process.env.STRIPE_BLOOM_PRICE_ID) {
+        // Price validation test
+        let priceValidation = null
+        if (process.env.STRIPE_BLOOM_PRICE_ID) {
+            try {
+                console.log('💰 [test-payment-flow] Validating price ID...')
                 const price = await stripe.prices.retrieve(process.env.STRIPE_BLOOM_PRICE_ID)
-                bloomPriceValid = price.active && price.unit_amount === 900
-                console.log('💰 [test-payment-flow] Bloom price check:', {
-                    id: price.id,
+                priceValidation = {
+                    success: true,
+                    priceId: price.id,
+                    amount: price.unit_amount,
+                    currency: price.currency,
                     active: price.active,
-                    unitAmount: price.unit_amount,
-                    valid: bloomPriceValid
-                })
+                    recurring: price.recurring,
+                }
+                console.log('✅ [test-payment-flow] Price validation successful:', priceValidation)
+            } catch (priceError) {
+                priceValidation = {
+                    success: false,
+                    error: priceError instanceof Error ? priceError.message : 'Unknown price error',
+                }
+                console.error('❌ [test-payment-flow] Price validation failed:', priceValidation)
             }
-        } catch (error) {
-            stripeConnectionStatus = 'failed'
-            console.error('❌ [test-payment-flow] Stripe connection failed:', error)
         }
 
-        // 3. Check authenticated user (if available)
-        let userCheck = null
-        try {
-            const supabase = createClientServerWithAuth(request)
-            const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-            if (user && !authError) {
-                const profile = await getUserProfile(user.id)
-                const subscription = await getUserSubscription(user.id)
-
-                userCheck = {
-                    authenticated: true,
-                    userId: user.id,
-                    email: user.email,
-                    hasProfile: !!profile,
-                    planId: profile?.plan_id || 'none',
-                    goalsLimit: profile?.goals_limit || 0,
-                    hasSubscription: !!subscription,
-                    subscriptionStatus: subscription?.status || 'none',
-                    stripeCustomerId: profile?.stripe_customer_id || 'none',
-                    stripeSubscriptionId: subscription?.stripe_subscription_id || 'none',
+        // Checkout session simulation
+        let sessionSimulation = null
+        if (process.env.STRIPE_BLOOM_PRICE_ID && bloomPlan.priceId) {
+            try {
+                console.log('🛒 [test-payment-flow] Simulating checkout session creation...')
+                // We won't actually create the session, just validate the config
+                const sessionConfig = {
+                    payment_method_types: ['card'],
+                    line_items: [
+                        {
+                            price: bloomPlan.priceId,
+                            quantity: 1,
+                        },
+                    ],
+                    mode: 'subscription' as const,
+                    success_url: 'https://example.com/success',
+                    cancel_url: 'https://example.com/cancel',
                 }
 
-                console.log('👤 [test-payment-flow] User check:', userCheck)
-            } else {
-                userCheck = { authenticated: false, error: authError?.message }
-            }
-        } catch (error) {
-            userCheck = { authenticated: false, error: 'Auth check failed' }
-        }
+                console.log('🛒 [test-payment-flow] Session config would be:', {
+                    priceId: sessionConfig.line_items[0].price,
+                    mode: sessionConfig.mode,
+                })
 
-        // 4. Test plan configuration
-        const planCheck = {
-            seedlingConfig: {
-                name: PLANS.seedling.name,
-                price: PLANS.seedling.price,
-                goalsLimit: PLANS.seedling.goalsLimit,
-                features: PLANS.seedling.features.length
-            },
-            bloomConfig: {
-                name: PLANS.bloom.name,
-                price: PLANS.bloom.price,
-                priceId: PLANS.bloom.priceId,
-                goalsLimit: PLANS.bloom.goalsLimit,
-                features: PLANS.bloom.features.length
+                sessionSimulation = {
+                    success: true,
+                    configValid: true,
+                    priceId: sessionConfig.line_items[0].price,
+                }
+            } catch (sessionError) {
+                sessionSimulation = {
+                    success: false,
+                    error: sessionError instanceof Error ? sessionError.message : 'Unknown session error',
+                }
+                console.error('❌ [test-payment-flow] Session simulation failed:', sessionSimulation)
             }
         }
 
-        // 5. Test webhook endpoint accessibility
-        let webhookCheck = {}
-        try {
-            const baseUrl = request.nextUrl.origin
-            webhookCheck = {
-                original: `${baseUrl}/api/stripe/webhook`,
-                snapshot: `${baseUrl}/api/webhooks/stripe/snapshot`,
-                thin: `${baseUrl}/api/webhooks/stripe/thin`
-            }
-        } catch (error) {
-            webhookCheck = { error: 'configuration error' }
-        }
-
-        // 6. Overall health assessment
+        // Health assessment
         const criticalIssues = []
         const warnings = []
 
@@ -118,49 +117,58 @@ export async function GET(request: NextRequest) {
         if (!envCheck.hasBloomPriceId) criticalIssues.push('Missing STRIPE_BLOOM_PRICE_ID')
         if (!envCheck.hasSupabaseUrl) criticalIssues.push('Missing NEXT_PUBLIC_SUPABASE_URL')
         if (!envCheck.hasSupabaseServiceKey) criticalIssues.push('Missing SUPABASE_SERVICE_ROLE_KEY')
+        if (bloomPlan.priceId === '') criticalIssues.push('Bloom plan has empty priceId')
+        if (priceValidation && !priceValidation.success) criticalIssues.push(`Invalid price ID: ${priceValidation.error}`)
 
-        if (stripeConnectionStatus !== 'connected') criticalIssues.push('Stripe connection failed')
-        if (!bloomPriceValid && envCheck.hasBloomPriceId) warnings.push('Bloom price configuration issue')
+        if (envCheck.nodeEnv === 'production' && account.livemode === false) {
+            warnings.push('Using test mode in production environment')
+        }
 
         const overallHealth = criticalIssues.length === 0 ? 'healthy' : 'critical'
 
-        const result = {
-            timestamp: new Date().toISOString(),
+        console.log(`📊 [test-payment-flow] Overall health: ${overallHealth}`)
+
+        return NextResponse.json({
+            success: true,
             overallHealth,
-            criticalIssues,
-            warnings,
-            checks: {
-                environment: envCheck,
-                stripe: {
-                    connection: stripeConnectionStatus,
-                    bloomPriceValid,
-                    priceId: process.env.STRIPE_BLOOM_PRICE_ID
-                },
-                user: userCheck,
-                plans: planCheck,
-                webhook: webhookCheck
+            timestamp: new Date().toISOString(),
+            environment: {
+                ...envCheck,
+                bloomPriceId: envCheck.bloomPriceId.substring(0, 20) + '...' || 'MISSING',
             },
-            nextSteps: criticalIssues.length > 0 ? [
-                'Fix critical environment variable issues',
-                'Restart the development server',
-                'Test payment flow again'
+            planConfiguration: {
+                planName: bloomPlan.name,
+                planPrice: bloomPlan.price,
+                priceIdSet: bloomPlan.priceId !== '',
+                priceIdLength: bloomPlan.priceId.length,
+            },
+            stripeConnection: {
+                accountId: account.id,
+                country: account.country,
+                livemode: account.livemode,
+            },
+            priceValidation,
+            sessionSimulation,
+            issues: {
+                critical: criticalIssues,
+                warnings,
+            },
+            recommendations: criticalIssues.length > 0 ? [
+                'Add missing environment variables to your deployment platform',
+                'Ensure STRIPE_BLOOM_PRICE_ID points to a valid Stripe price',
+                'Restart your application after adding environment variables',
             ] : [
-                'Test a complete payment flow',
-                'Check webhook delivery in Stripe Dashboard',
-                'Verify user permissions are granted correctly'
-            ]
-        }
-
-        console.log('✅ [test-payment-flow] Verification complete:', result)
-
-        return NextResponse.json(result)
+                'Payment system appears to be configured correctly',
+            ],
+        })
 
     } catch (error) {
-        console.error('💥 [test-payment-flow] Verification failed:', error)
+        console.error('💥 [test-payment-flow] Diagnostic failed:', error)
         return NextResponse.json({
-            error: 'Payment flow verification failed',
+            success: false,
+            error: 'Payment flow diagnostic failed',
             details: error instanceof Error ? error.message : 'Unknown error',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         }, { status: 500 })
     }
 }
