@@ -1,10 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Moon, Menu, X, LogOut, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,21 +9,124 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/auth-context";
+import { useGoalData } from "@/contexts/goal-data-context";
+import { useLocalDataStatus } from "@/hooks/use-local-storage";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Cloud,
+  CloudOff,
+  CreditCard,
+  Database,
+  LogOut,
+  Menu,
+  Moon,
+  RefreshCw,
+  User,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 interface SiteHeaderProps {
-  variant?: "default" | "landing"
+  variant?: "default" | "landing";
 }
 
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const { syncStatus } = useGoalData();
+  const { hasLocalData, localDataCount } = useLocalDataStatus();
 
-  const isLanding = variant === "landing"
+  const isLanding = variant === "landing";
 
   const handleSignOut = async () => {
-    await signOut()
-  }
+    await signOut();
+  };
+
+  // Sync status indicator component
+  const SyncStatusIndicator = () => {
+    if (isLanding || !user) {
+      // Show local storage indicator for unauthenticated users
+      if (hasLocalData) {
+        return (
+          <div className="flex items-center gap-1">
+            <CloudOff className="h-4 w-4 text-amber-500" />
+            <Badge variant="secondary" className="text-xs">
+              {localDataCount} Local
+            </Badge>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    // Authenticated user sync status
+    if (syncStatus.isLoading) {
+      return (
+        <div className="flex items-center gap-1">
+          <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+          <Badge variant="default" className="text-xs">
+            Syncing...
+          </Badge>
+        </div>
+      );
+    }
+
+    if (syncStatus.result) {
+      const { synced, errors, clearedLocal } = syncStatus.result;
+
+      if (errors.length > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <Badge variant="destructive" className="text-xs">
+              Sync Issues
+            </Badge>
+          </div>
+        );
+      }
+
+      if (clearedLocal && synced > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <Badge
+              variant="default"
+              className="text-xs bg-green-100 text-green-700"
+            >
+              Synced
+            </Badge>
+          </div>
+        );
+      }
+    }
+
+    if (hasLocalData) {
+      return (
+        <div className="flex items-center gap-1">
+          <Database className="h-4 w-4 text-amber-500" />
+          <Badge variant="secondary" className="text-xs">
+            {localDataCount} to Sync
+          </Badge>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        <Cloud className="h-4 w-4 text-green-500" />
+        <Badge
+          variant="default"
+          className="text-xs bg-green-100 text-green-700"
+        >
+          Cloud
+        </Badge>
+      </div>
+    );
+  };
 
   return (
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
@@ -45,20 +145,33 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             // Landing page navigation
             <>
               <div className="hidden md:flex items-center space-x-10">
-                <a href="#features" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#features"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Features
                 </a>
-                <a href="#how-it-works" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#how-it-works"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   How it Works
                 </a>
-                <a href="#testimonials" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#testimonials"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Stories
                 </a>
-                <a href="#pricing" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <a
+                  href="#pricing"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Pricing
                 </a>
               </div>
               <div className="flex items-center space-x-4">
+                <SyncStatusIndicator />
                 {user ? (
                   <Link href="/dashboard">
                     <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
@@ -68,7 +181,10 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 ) : (
                   <>
                     <Link href="/auth/signin">
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800"
+                      >
                         Sign In
                       </Button>
                     </Link>
@@ -85,28 +201,49 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             // App navigation
             <>
               <div className="hidden md:flex items-center space-x-8">
-                <Link href="/dashboard" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/dashboard"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Dashboard
                 </Link>
-                <Link href="/create-goal" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/create-goal"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Create Goal
                 </Link>
-                <Link href="/timeline" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/timeline"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Timeline
                 </Link>
-                <Link href="/calendar" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/calendar"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Calendar
                 </Link>
-                <Link href="/check-in" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/check-in"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Check-in
                 </Link>
-                <Link href="/analytics" className="text-stone-600 hover:text-stone-800 transition-colors font-light">
+                <Link
+                  href="/analytics"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
                   Analytics
                 </Link>
                 {!user && (
                   <>
                     <Link href="/auth/signin">
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800"
+                      >
                         Sign In
                       </Button>
                     </Link>
@@ -119,11 +256,15 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 )}
               </div>
 
-              <div className="hidden md:flex items-center space-x-4">
+              <div className="flex items-center space-x-4">
+                <SyncStatusIndicator />
                 {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="text-stone-600 hover:text-stone-800 rounded-full p-2">
+                      <Button
+                        variant="ghost"
+                        className="text-stone-600 hover:text-stone-800 rounded-full"
+                      >
                         <User className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -131,11 +272,22 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                       <DropdownMenuLabel>
                         <div className="flex flex-col">
                           <span>My Account</span>
-                          <span className="text-xs text-stone-500 font-light">{user.email}</span>
+                          <span className="text-xs text-stone-500 font-light">
+                            {user.email}
+                          </span>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut} className="text-rose-500 cursor-pointer">
+                      <Link href="/billing">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Billing & Plans
+                        </DropdownMenuItem>
+                      </Link>
+                      <DropdownMenuItem
+                        onClick={handleSignOut}
+                        className="text-rose-500 cursor-pointer"
+                      >
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign out
                       </DropdownMenuItem>
@@ -152,8 +304,17 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             </>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </Button>
         </div>
       </div>
@@ -262,7 +423,9 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   Analytics
                 </Link>
                 <div className="pt-2 border-t border-stone-100">
-                  <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">New Goal</Button>
+                  <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                    New Goal
+                  </Button>
                 </div>
                 {user && (
                   <div className="pt-2 border-t border-stone-100">
@@ -281,5 +444,5 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
         </div>
       )}
     </header>
-  )
+  );
 }
