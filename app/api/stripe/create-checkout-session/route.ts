@@ -30,9 +30,12 @@ export async function POST(request: NextRequest) {
 			supabaseServiceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0,
 		})
 
+		// Create response object for cookie handling
+		const response = NextResponse.json({ success: true })
+
 		// Get the authenticated user
 		console.log('🔑 [create-checkout-session] Creating Supabase client...')
-		const supabase = createClientServerWithAuth(request)
+		const supabase = createClientServerWithAuth(request, response)
 
 		console.log('🔑 [create-checkout-session] Getting authenticated user...')
 		const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -46,12 +49,12 @@ export async function POST(request: NextRequest) {
 
 		if (authError) {
 			console.error('❌ [create-checkout-session] Auth error:', authError)
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+			return NextResponse.json({ error: 'Unauthorized', details: authError.message }, { status: 401 })
 		}
 
 		if (!user) {
 			console.error('❌ [create-checkout-session] No user found')
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+			return NextResponse.json({ error: 'Unauthorized', details: 'No user session found' }, { status: 401 })
 		}
 
 		console.log('👤 [create-checkout-session] Getting user profile for:', user.id)
@@ -157,14 +160,14 @@ export async function POST(request: NextRequest) {
 			sessionUrl: session.url,
 		})
 
-		return NextResponse.json({ sessionId: session.id })
+		return NextResponse.json({ sessionId: session.id, url: session.url })
 	} catch (error) {
 		console.error('💥 [create-checkout-session] Error creating checkout session:', {
 			error: error instanceof Error ? error.message : 'Unknown error',
 			stack: error instanceof Error ? error.stack : undefined,
 		})
 		return NextResponse.json(
-			{ error: 'Internal server error' },
+			{ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
 			{ status: 500 }
 		)
 	}

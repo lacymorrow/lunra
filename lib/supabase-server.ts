@@ -28,15 +28,18 @@ export const createClientServerWithAuth = (request: NextRequest, response?: Next
 
     console.log('✅ [createClientServerWithAuth] Creating server client with auth')
 
+    // Get all cookies from the request
+    const requestCookies = request.cookies.getAll().map(cookie => ({
+        name: cookie.name,
+        value: cookie.value
+    }));
+
+    console.log('🍪 [createClientServerWithAuth] Request cookies:', requestCookies.map(c => c.name));
+
     return createServerClient(supabaseUrl, supabaseAnonKey, {
         cookies: {
             getAll() {
-                const cookies = request.cookies.getAll().map(cookie => ({
-                    name: cookie.name,
-                    value: cookie.value
-                }));
-                console.log('🍪 [createClientServerWithAuth] Getting cookies:', cookies.map(c => c.name));
-                return cookies;
+                return requestCookies;
             },
             setAll(cookiesToSet) {
                 console.log('🍪 [createClientServerWithAuth] Setting cookies:', cookiesToSet.map(c => c.name));

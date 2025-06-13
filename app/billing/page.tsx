@@ -23,20 +23,40 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function BillingPage() {
-  const { user, userProfile, userSubscription, isDataLoading, refreshProfile } =
-    useAuth();
+  const {
+    user,
+    userProfile,
+    userSubscription,
+    isLoading,
+    isDataLoading,
+    refreshProfile,
+  } = useAuth();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-stone-600" />
+          <span className="ml-2 text-stone-600">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
   if (!user) {
     router.push("/auth/signin");
     return null;
   }
 
   const handleManageSubscription = async () => {
-    setIsLoading(true);
+    setIsProcessing(true);
+    setError(null);
     try {
       const response = await fetch("/api/stripe/create-portal-session", {
         method: "POST",
@@ -49,20 +69,31 @@ export default function BillingPage() {
         const { url } = await response.json();
         window.location.href = url;
       } else {
-        console.error("Failed to create portal session");
-        setError("Failed to access billing portal");
+        const errorData = await response.json();
+        console.error("Failed to create portal session:", errorData);
+        setError("Failed to access billing portal. Please try again.");
       }
     } catch (error) {
       console.error("Error:", error);
-      setError("Failed to access billing portal");
+      setError(
+        "Failed to access billing portal. Please check your connection."
+      );
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
   const handleUpgrade = async () => {
-    setIsLoading(true);
+    setIsProcessing(true);
+    setError(null);
+
     try {
+      // Double-check authentication before starting checkout
+      if (!user) {
+        router.push("/auth/signin");
+        return;
+      }
+
       const response = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
         headers: {
@@ -75,24 +106,43 @@ export default function BillingPage() {
 
       if (response.ok) {
         const { sessionId } = await response.json();
-        // Redirect to Stripe Checkout
-        const stripe = (window as any).Stripe?.(
-          process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-        );
-        if (stripe) {
-          await stripe.redirectToCheckout({ sessionId });
+
+        // Load Stripe and redirect to checkout
+        if (typeof window !== "undefined" && window.Stripe) {
+          const stripe = window.Stripe(
+            process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          );
+          if (stripe) {
+            const { error } = await stripe.redirectToCheckout({ sessionId });
+            if (error) {
+              console.error("Stripe redirect error:", error);
+              setError("Failed to redirect to checkout. Please try again.");
+            }
+          } else {
+            setError(
+              "Payment system not available. Please refresh and try again."
+            );
+          }
         } else {
-          setError("Payment system not available");
+          setError("Payment system loading. Please refresh and try again.");
         }
       } else {
-        console.error("Failed to create checkout session");
-        setError("Failed to start checkout");
+        const errorData = await response.json();
+        console.error("Failed to create checkout session:", errorData);
+
+        if (response.status === 401) {
+          // Authentication issue - redirect to signin
+          router.push("/auth/signin");
+          return;
+        }
+
+        setError("Failed to start checkout. Please try again.");
       }
     } catch (error) {
       console.error("Error:", error);
-      setError("Failed to start checkout");
+      setError("Failed to start checkout. Please check your connection.");
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -112,7 +162,11 @@ export default function BillingPage() {
         // Refresh the data after sync using auth context
         await refreshProfile();
       } else {
-        setError("Failed to sync subscription");
+        if (response.status === 404) {
+          setError("No subscription found to sync");
+        } else {
+          setError("Failed to sync subscription");
+        }
       }
     } catch (error) {
       console.error("Error syncing subscription:", error);
@@ -122,7 +176,7 @@ export default function BillingPage() {
     }
   };
 
-  // Show loading state
+  // Show loading state while data is loading
   if (isDataLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -261,20 +315,24 @@ export default function BillingPage() {
             {isPaidPlan && userSubscription ? (
               <Button
                 onClick={handleManageSubscription}
-                disabled={isLoading}
+                disabled={isProcessing}
                 className="w-full"
                 variant="outline"
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Manage Subscription
               </Button>
             ) : (
               <Button
                 onClick={handleUpgrade}
-                disabled={isLoading}
+                disabled={isProcessing}
                 className="w-full bg-rose-400 hover:bg-rose-500"
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Upgrade to Bloom
               </Button>
             )}
@@ -303,10 +361,12 @@ export default function BillingPage() {
             {!isPaidPlan && (
               <Button
                 onClick={handleUpgrade}
-                disabled={isLoading}
+                disabled={isProcessing}
                 className="w-full mt-4 bg-rose-400 hover:bg-rose-500"
               >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isProcessing && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Upgrade Now
               </Button>
             )}
@@ -328,7 +388,7 @@ export default function BillingPage() {
                 onClick={handleManageSubscription}
                 variant="ghost"
                 className="mt-2"
-                disabled={isLoading}
+                disabled={isProcessing}
               >
                 View Billing History
               </Button>

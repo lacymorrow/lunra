@@ -1,16 +1,12 @@
+import { createBrowserClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 
-// Create a single supabase client for the browser
+// Create a single supabase client for the browser with proper SSR cookie handling
 export const createClientBrowser = () => {
 	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
 	const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
 
-	return createClient(supabaseUrl, supabaseAnonKey, {
-		auth: {
-			persistSession: true,
-			autoRefreshToken: true,
-		},
-	})
+	return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
 // Create a single supabase client for server components
@@ -26,7 +22,7 @@ export const createClientServer = () => {
 	})
 }
 
-// Client-side singleton
+// Client-side singleton with proper SSR handling
 let browserClient: ReturnType<typeof createClientBrowser> | null = null
 
 export const supabase = () => {
@@ -35,7 +31,7 @@ export const supabase = () => {
 		return createClientServer()
 	}
 
-	// Client-side: use singleton pattern
+	// Client-side: use singleton pattern with SSR-compatible client
 	if (!browserClient) {
 		browserClient = createClientBrowser()
 	}
