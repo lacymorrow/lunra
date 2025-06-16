@@ -108,7 +108,7 @@ export default function LandingPage() {
               </Badge>
               <h1 className="text-5xl lg:text-6xl font-serif text-stone-800 mb-8 leading-tight">
                 turn your dreams into
-                <span className="italic text-rose-500"> progress</span>
+                <span className="italic text-rose-500"> progress.</span>
               </h1>
               <p className="text-xl text-stone-600 mb-10 leading-relaxed font-light max-w-xl">
                 A mindful approach to goal setting that honors your unique
