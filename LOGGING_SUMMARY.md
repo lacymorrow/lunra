@@ -96,7 +96,7 @@ All logs use emoji prefixes for easy scanning:
 
 Look for logs with 🔍 prefix showing environment variable validation:
 
-```
+\`\`\`
 🔍 [createClientServer] Environment check: {
   hasUrl: true,
   hasServiceKey: true,
@@ -104,46 +104,46 @@ Look for logs with 🔍 prefix showing environment variable validation:
   serviceKeyLength: 180,
   nodeEnv: 'development'
 }
-```
+\`\`\`
 
 ### 2. Authentication Problems
 
 Look for logs with 🔑 prefix showing auth flow:
 
-```
+\`\`\`
 🔑 [create-checkout-session] Auth result: {
   hasUser: true,
   userId: 'abc123',
   userEmail: 'user@example.com',
   authError: null
 }
-```
+\`\`\`
 
 ### 3. Stripe Integration Issues
 
 Look for logs with 💳 prefix showing Stripe operations:
 
-```
+\`\`\`
 💳 [create-checkout-session] Plan details: {
   planId: 'bloom',
   planName: 'Bloom',
   planPrice: 9,
   planPriceId: 'price_1RX6egF1cydfMdmSg3wa9JkD'
 }
-```
+\`\`\`
 
 ### 4. Database Operations
 
 Look for logs with 📄 prefix showing database queries:
 
-```
+\`\`\`
 📄 [sync-subscription] Database subscription result: {
   hasSubscription: true,
   subscriptionId: 'sub_123',
   stripeSubscriptionId: 'sub_1abc123',
   status: 'active'
 }
-```
+\`\`\`
 
 ## 🔧 Fixed Issues
 
