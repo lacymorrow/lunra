@@ -1,20 +1,26 @@
+"use client"
+
 import type React from "react"
+
+import { AuthProvider } from "@/contexts/auth-context"
+import { GoalDataProvider } from "@/contexts/goal-data-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { Sonner } from "@/components/ui/sonner"
-import { AuthProvider } from "@/contexts/auth-context"
+import { Toaster as Sonner } from "@/components/ui/sonner"
 
-interface ClientLayoutProps {
+export default function ClientLayout({
+  children,
+}: {
   children: React.ReactNode
-}
-
-export default function ClientLayout({ children }: ClientLayoutProps) {
+}) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        {children}
+        <GoalDataProvider>
+          {children}
+          <Toaster />
+          <Sonner />
+        </GoalDataProvider>
       </AuthProvider>
     </ThemeProvider>
   )
