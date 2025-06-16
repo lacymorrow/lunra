@@ -28,7 +28,7 @@ The Lunra app implements a **dual-storage architecture** that provides offline-f
 
 The `GoalDataManager` class (`lib/data-manager.ts`) handles all data operations:
 
-\`\`\`typescript
+```typescript
 export class GoalDataManager {
   private userId: string | null = null
   private userProfile: DatabaseUserProfile | null = null
@@ -39,23 +39,23 @@ export class GoalDataManager {
   get isPaidUser(): boolean  
   get shouldSync(): boolean
 }
-\`\`\`
+```
 
 ### Storage Flow
 
 #### For All Users (localStorage)
 
-\`\`\`
+```
 User Action → localStorage Update → UI Update (Immediate)
-\`\`\`
+```
 
 #### For Paid Users (localStorage + Cloud)
 
-\`\`\`
+```
 User Action → localStorage Update → UI Update (Immediate)
            ↓
 Background Cloud Sync (Non-blocking)
-\`\`\`
+```
 
 ### Sync Mechanisms
 
@@ -84,7 +84,7 @@ Background Cloud Sync (Non-blocking)
 
 #### Core CRUD Operations
 
-\`\`\`typescript
+```typescript
 // Get all goals (always from localStorage)
 async getGoals(): Promise<SavedGoal[]>
 
@@ -99,11 +99,11 @@ async updateGoal(id: number | string, goalData: Partial<SavedGoal>): Promise<Sav
 
 // Delete goal (localStorage + background sync for paid users)
 async deleteGoal(id: number | string): Promise<boolean>
-\`\`\`
+```
 
 #### Sync Operations
 
-\`\`\`typescript
+```typescript
 // Initial sync for new users (legacy method)
 async syncLocalGoalsToDatabase(): Promise<{
   synced: number;
@@ -127,11 +127,11 @@ getSyncInfo(): {
   shouldSync: boolean;
   autoSyncActive: boolean;
 }
-\`\`\`
+```
 
 #### Milestone Operations
 
-\`\`\`typescript
+```typescript
 // Mark milestone as complete
 async markMilestoneComplete(goalId: number, milestoneIndex: number): Promise<void>
 
@@ -140,23 +140,23 @@ async undoMilestoneComplete(goalId: number, milestoneIndex: number): Promise<voi
 
 // Adjust goal timeline
 async adjustTimeline(goalId: number): Promise<void>
-\`\`\`
+```
 
 #### Lifecycle Management
 
-\`\`\`typescript
+```typescript
 // Update user data and sync settings
 setUserData(userId: string | null, userProfile?: DatabaseUserProfile | null): void
 
 // Clean up resources
 destroy(): void
-\`\`\`
+```
 
 ### Context Integration
 
 #### GoalDataProvider
 
-\`\`\`typescript
+```typescript
 interface GoalDataContextType {
   dataManager: GoalDataManager;
   goals: SavedGoal[];
@@ -166,11 +166,11 @@ interface GoalDataContextType {
   syncStatus: SyncStatus;
   triggerManualSync: () => Promise<void>;
 }
-\`\`\`
+```
 
 #### SyncStatus Interface
 
-\`\`\`typescript
+```typescript
 interface SyncStatus {
   isLoading: boolean;
   result?: {
@@ -186,13 +186,13 @@ interface SyncStatus {
     errors: string[];
   } | null;
 }
-\`\`\`
+```
 
 ## Usage Examples
 
 ### Basic Goal Management
 
-\`\`\`typescript
+```typescript
 import { useGoalData } from "@/contexts/goal-data-context";
 
 function MyComponent() {
@@ -231,11 +231,11 @@ function MyComponent() {
     </div>
   );
 }
-\`\`\`
+```
 
 ### Manual Sync for Paid Users
 
-\`\`\`typescript
+```typescript
 import { useAuth } from "@/contexts/auth-context";
 import { useGoalData } from "@/contexts/goal-data-context";
 
@@ -256,11 +256,11 @@ function SyncButton() {
     </button>
   );
 }
-\`\`\`
+```
 
 ### Sync Status Display
 
-\`\`\`typescript
+```typescript
 function SyncStatusIndicator() {
   const { user, userProfile } = useAuth();
   const { syncStatus } = useGoalData();
@@ -289,7 +289,7 @@ function SyncStatusIndicator() {
 
   return <span>Cloud + Local</span>;
 }
-\`\`\`
+```
 
 ## UI Integration
 
@@ -333,7 +333,7 @@ Conflicts are detected by comparing key fields:
 
 **Local Always Wins**: When conflicts are detected, the local version is considered the source of truth and overwrites the database version.
 
-\`\`\`typescript
+```typescript
 private hasConflict(localGoal: SavedGoal, dbGoal: SavedGoal): boolean {
   return (
     localGoal.title !== dbGoal.title ||
@@ -343,7 +343,7 @@ private hasConflict(localGoal: SavedGoal, dbGoal: SavedGoal): boolean {
     JSON.stringify(localGoal.milestones) !== JSON.stringify(dbGoal.milestones)
   )
 }
-\`\`\`
+```
 
 ## Error Handling
 
@@ -360,14 +360,14 @@ The system is designed to gracefully handle various failure scenarios:
 
 Sync errors are collected and reported through the `SyncStatus` interface:
 
-\`\`\`typescript
+```typescript
 {
   errors: string[]; // Array of error messages
   localToDbSynced: number; // Successful syncs despite errors
   dbToLocalSynced: number;
   conflicts: number;
 }
-\`\`\`
+```
 
 ## Performance Considerations
 
@@ -388,7 +388,7 @@ Sync errors are collected and reported through the `SyncStatus` interface:
 
 All database operations run in background without blocking UI:
 
-\`\`\`typescript
+```typescript
 // Example: Create goal
 const localGoal = createLocalGoal(goalData); // Immediate
 // UI updates instantly with localGoal
@@ -397,7 +397,7 @@ if (this.shouldSync) {
   // Background sync (non-blocking)
   createGoal(localGoal, this.userId!).catch(console.error);
 }
-\`\`\`
+```
 
 ## Migration from Previous System
 
@@ -451,7 +451,7 @@ The new system maintains compatibility with existing data:
 
 Use the sync info method to get current state:
 
-\`\`\`typescript
+```typescript
 const syncInfo = dataManager.getSyncInfo();
 console.log('Sync Info:', {
   lastSync: syncInfo.lastSync,
@@ -459,7 +459,7 @@ console.log('Sync Info:', {
   shouldSync: syncInfo.shouldSync,
   autoSyncActive: syncInfo.autoSyncActive
 });
-\`\`\`
+```
 
 ### Console Logging
 
@@ -514,7 +514,7 @@ The system provides detailed console logging:
 
 ### Development Testing
 
-\`\`\`bash
+```bash
 # Check localStorage in DevTools
 localStorage.getItem('savedGoals')
 localStorage.getItem('lastSyncTimestamp')
@@ -524,7 +524,7 @@ window.dataManager?.bidirectionalSync()
 
 # Check sync status
 window.dataManager?.getSyncInfo()
-\`\`\`
+```
 
 ## Security Considerations
 

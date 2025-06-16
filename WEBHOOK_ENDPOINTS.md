@@ -6,9 +6,9 @@ Your Lunra application now supports multiple webhook endpoints for different env
 
 ### 1. Original Endpoint
 
-\`\`\`
+```
 https://lunra.ai/api/stripe/webhook
-\`\`\`
+```
 
 - **Environment Variable:** `STRIPE_WEBHOOK_SECRET`
 - **Purpose:** Main webhook endpoint
@@ -16,9 +16,9 @@ https://lunra.ai/api/stripe/webhook
 
 ### 2. Snapshot Endpoint
 
-\`\`\`
+```
 https://lunra.ai/api/webhooks/stripe/snapshot
-\`\`\`
+```
 
 - **Environment Variable:** `STRIPE_WEBHOOK_SECRET_SNAP`
 - **Secret:** `whsec_dECYZWpiAj5wXSXOxLkMxpV06qgQneDK`
@@ -27,9 +27,9 @@ https://lunra.ai/api/webhooks/stripe/snapshot
 
 ### 3. Thin Endpoint
 
-\`\`\`
+```
 https://lunra.ai/api/webhooks/stripe/thin
-\`\`\`
+```
 
 - **Environment Variable:** `STRIPE_WEBHOOK_SECRET_THIN`
 - **Secret:** `whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv`
@@ -40,14 +40,14 @@ https://lunra.ai/api/webhooks/stripe/thin
 
 Add these to your `.env.local` file:
 
-\`\`\`bash
+```bash
 # New webhook secrets (provided)
 STRIPE_WEBHOOK_SECRET_SNAP=whsec_dECYZWpiAj5wXSXOxLkMxpV06qgQneDK
 STRIPE_WEBHOOK_SECRET_THIN=whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv
 
 # Optional: Keep original if needed
 STRIPE_WEBHOOK_SECRET=whsec_your_original_secret_here
-\`\`\`
+```
 
 ## Stripe Dashboard Configuration
 
@@ -65,7 +65,7 @@ For each endpoint, configure in your Stripe Dashboard:
 
 Test each endpoint individually:
 
-\`\`\`bash
+```bash
 # Test snapshot endpoint
 curl -X POST https://lunra.ai/api/webhooks/stripe/snapshot \
   -H "Content-Type: application/json" \
@@ -75,7 +75,7 @@ curl -X POST https://lunra.ai/api/webhooks/stripe/snapshot \
 curl -X POST https://lunra.ai/api/webhooks/stripe/thin \
   -H "Content-Type: application/json" \
   -d '{"test": true}'
-\`\`\`
+```
 
 ## Webhook Processing Flow
 
@@ -120,9 +120,9 @@ If one endpoint fails, Stripe will retry. You can also:
 
 Run the diagnostic tool to verify all endpoints:
 
-\`\`\`bash
+```bash
 curl "https://lunra.ai/api/dev/test-payment-flow" | jq .
-\`\`\`
+```
 
 Should show all webhook secrets as configured and endpoints as available.
 

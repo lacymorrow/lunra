@@ -4,9 +4,9 @@
 
 Run this command to check your payment system health:
 
-\`\`\`bash
+```bash
 curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-\`\`\`
+```
 
 ## 🚨 Critical Issue Identified
 
@@ -33,9 +33,9 @@ Your payment system has **one critical issue**:
 
 1. **Go to Stripe Dashboard:**
 
-   \`\`\`
+   ```
    https://dashboard.stripe.com/webhooks
-   \`\`\`
+   ```
 
 2. **Create new webhook endpoint:**
    - URL: `http://localhost:3000/api/stripe/webhook` (dev) or `https://yourdomain.com/api/stripe/webhook` (prod)
@@ -43,9 +43,9 @@ Your payment system has **one critical issue**:
 
 3. **Copy webhook secret and add to `.env.local`:**
 
-   \`\`\`bash
+   ```bash
    STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
-   \`\`\`
+   ```
 
 4. **Restart your development server**
 
@@ -61,9 +61,9 @@ For users who already paid but don't have permissions:
 
 For testing checkout flow without webhook setup:
 
-\`\`\`bash
+```bash
 curl -X POST "http://localhost:3000/api/dev/fix-webhook-validation"
-\`\`\`
+```
 
 ⚠️ **WARNING:** This bypasses security. Only for development testing.
 
@@ -73,9 +73,9 @@ After adding the webhook secret:
 
 1. **Verify configuration:**
 
-   \`\`\`bash
+   ```bash
    curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-   \`\`\`
+   ```
 
    Should show `"overallHealth": "healthy"`
 
@@ -121,7 +121,7 @@ Your payment flow works like this:
 
 Make sure you have all these in `.env.local`:
 
-\`\`\`bash
+```bash
 # Supabase (✅ You have these)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key  
@@ -134,7 +134,7 @@ STRIPE_BLOOM_PRICE_ID=price_1RYJSaFLciJzY1p7hP3mJaXS
 
 # Missing this one ❌
 STRIPE_WEBHOOK_SECRET=whsec_...
-\`\`\`
+```
 
 ## 🎯 Next Steps
 

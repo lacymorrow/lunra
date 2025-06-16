@@ -72,16 +72,16 @@ Each endpoint handles all payment events:
 
 Run the setup script:
 
-\`\`\`bash
+```bash
 ./scripts/setup-webhook-secrets.sh
-\`\`\`
+```
 
 Or manually add to `.env.local`:
 
-\`\`\`bash
+```bash
 STRIPE_WEBHOOK_SECRET_SNAP=whsec_dECYZWpiAj5wXSXOxLkMxpV06qgQneDK
 STRIPE_WEBHOOK_SECRET_THIN=whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv
-\`\`\`
+```
 
 ### 2. Configure Stripe Dashboard
 
@@ -94,21 +94,21 @@ Add webhook endpoints in Stripe Dashboard:
 
 ### 3. Test the Implementation
 
-\`\`\`bash
+```bash
 # Test configuration
 curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
 
 # Should show "overallHealth": "healthy" after setup
-\`\`\`
+```
 
 ### 4. Deploy to Production
 
 Add the environment variables to your production deployment (Vercel, etc.):
 
-\`\`\`bash
+```bash
 STRIPE_WEBHOOK_SECRET_SNAP=whsec_dECYZWpiAj5wXSXOxLkMxpV06qgQneDK
 STRIPE_WEBHOOK_SECRET_THIN=whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv
-\`\`\`
+```
 
 ## 🚀 System Status
 
@@ -128,7 +128,7 @@ STRIPE_WEBHOOK_SECRET_THIN=whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv
 
 ## 📊 Architecture Overview
 
-\`\`\`
+```
 Payment Flow:
 User Pays → Stripe → Webhook Event → Your App → Database Update → User Gets Access
 
@@ -142,7 +142,7 @@ Each endpoint:
 ✅ Processes payment events
 ✅ Updates user permissions
 ✅ Logs activities
-\`\`\`
+```
 
 Your payment system is now **production-ready** with multiple webhook endpoint support! 🎉
 
