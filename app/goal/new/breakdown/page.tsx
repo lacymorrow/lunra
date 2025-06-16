@@ -9,7 +9,6 @@ import { CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle,
 import Link from "next/link"
 import { useChat } from "ai/react"
 import { useRouter } from "next/navigation"
-import { SiteHeader } from "@/components/site-header"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
@@ -392,7 +391,6 @@ export default function GoalBreakdown() {
   if (!goal) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-        <SiteHeader />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
