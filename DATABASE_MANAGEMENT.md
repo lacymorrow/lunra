@@ -18,9 +18,9 @@ The database consists of the following main tables:
 
 To completely reset your database and remove all data:
 
-```bash
+\`\`\`bash
 npm run db:reset
-```
+\`\`\`
 
 This will:
 
@@ -36,11 +36,11 @@ This will:
 
 You can also reset the database via the API:
 
-```bash
+\`\`\`bash
 curl -X POST http://localhost:3000/api/dev/reset-database \
   -H "Content-Type: application/json" \
   -d '{"confirm": "RESET_DATABASE"}'
-```
+\`\`\`
 
 ## Safety Features
 
@@ -110,7 +110,7 @@ If you can't connect to the database:
 
 Make sure you have these environment variables set in your `.env.local`:
 
-```bash
+\`\`\`bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
@@ -120,7 +120,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=your_webhook_secret
-```
+\`\`\`
 
 ## Best Practices
 
