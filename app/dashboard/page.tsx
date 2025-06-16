@@ -687,15 +687,6 @@ function DashboardContent() {
                     Weekly Check-in
                   </Button>
                 </Link>
-                <Link href="/analytics" className="block">
-                  <Button
-                    className="w-full justify-start rounded-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200"
-                    variant="outline"
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2 text-stone-500" />
-                    Progress Analytics
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
 

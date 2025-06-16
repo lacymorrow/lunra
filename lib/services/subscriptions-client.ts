@@ -8,7 +8,7 @@ export async function getUserSubscriptionClient(userId: string): Promise<Databas
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
     if (error) {
         console.error('Error fetching user subscription:', error)
@@ -23,7 +23,7 @@ export async function getUserProfileClient(userId: string): Promise<DatabaseUser
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
     if (error) {
         console.error('Error fetching user profile:', error)

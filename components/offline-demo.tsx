@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/auth-context";
 import { useGoalData } from "@/contexts/goal-data-context";
-import { useLocalGoals } from "@/hooks/use-local-storage";
 import {
   CheckCircle,
   Cloud,
@@ -26,11 +25,17 @@ import {
 import { useState } from "react";
 
 export function OfflineDemo() {
-  const { user } = useAuth();
-  const { dataManager, syncStatus } = useGoalData();
-  const { goals: localGoals, addGoal, deleteGoal } = useLocalGoals();
+  const { user, userProfile } = useAuth();
+  const {
+    goals: localGoals,
+    dataManager,
+    syncStatus,
+    triggerManualSync,
+  } = useGoalData();
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalDescription, setNewGoalDescription] = useState("");
+
+  const isPaidUser = user && userProfile?.plan_id === "bloom";
 
   const handleAddGoal = () => {
     if (!newGoalTitle.trim()) return;
@@ -47,30 +52,21 @@ export function OfflineDemo() {
       milestones: [],
     };
 
-    if (user) {
-      // Use the data manager for authenticated users
-      dataManager.createGoal(goalData);
-    } else {
-      // Use local storage for unauthenticated users
-      addGoal(goalData);
-    }
+    // Always use data manager now (it handles localStorage + sync for paid users)
+    dataManager.createGoal(goalData);
 
     setNewGoalTitle("");
     setNewGoalDescription("");
   };
 
   const handleDeleteGoal = (goalId: number) => {
-    if (user) {
-      dataManager.deleteGoal(goalId);
-    } else {
-      deleteGoal(goalId);
-    }
+    dataManager.deleteGoal(goalId);
   };
 
   const handleSync = async () => {
-    if (user && dataManager) {
+    if (isPaidUser) {
       try {
-        await dataManager.syncLocalGoalsToDatabase();
+        await triggerManualSync();
       } catch (error) {
         console.error("Sync failed:", error);
       }
@@ -84,29 +80,36 @@ export function OfflineDemo() {
           <div>
             <CardTitle className="flex items-center gap-2">
               Offline-First Demo
-              {user ? (
+              {isPaidUser ? (
                 <Badge
                   variant="default"
                   className="bg-green-100 text-green-700"
                 >
                   <Cloud className="h-3 w-3 mr-1" />
-                  Cloud Mode
+                  Cloud + Local
+                </Badge>
+              ) : user ? (
+                <Badge variant="secondary">
+                  <CloudOff className="h-3 w-3 mr-1" />
+                  Local Only
                 </Badge>
               ) : (
                 <Badge variant="secondary">
                   <CloudOff className="h-3 w-3 mr-1" />
-                  Local Mode
+                  Guest Mode
                 </Badge>
               )}
             </CardTitle>
             <CardDescription>
-              {user
-                ? "Your goals are automatically synced to the cloud"
+              {isPaidUser
+                ? "Your goals are stored locally for offline access and automatically synced to the cloud"
+                : user
+                ? "Your goals are stored locally on this device only. Upgrade to Bloom for cloud sync!"
                 : "Your goals are stored locally. Sign in to sync them to the cloud!"}
             </CardDescription>
           </div>
 
-          {user && localGoals.length > 0 && (
+          {isPaidUser && (
             <Button
               size="sm"
               variant="outline"
@@ -155,7 +158,13 @@ export function OfflineDemo() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">
-              Your Goals ({user ? "Cloud + Local" : "Local Only"})
+              Your Goals (
+              {isPaidUser
+                ? "Cloud + Local"
+                : user
+                ? "Local Only"
+                : "Local Only"}
+              )
             </h4>
             {localGoals.length > 0 && (
               <Badge variant="outline" className="text-xs">
@@ -209,47 +218,80 @@ export function OfflineDemo() {
         </div>
 
         {/* Sync status */}
-        {user && syncStatus.result && (
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium">Last Sync Status</span>
+        {isPaidUser &&
+          (syncStatus.result || syncStatus.bidirectionalResult) && (
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Sync Status</span>
+              </div>
+              <div className="text-xs text-stone-600 space-y-1">
+                {syncStatus.result && (
+                  <>
+                    <p>
+                      • Initial sync: {syncStatus.result.synced} goals synced to
+                      cloud
+                    </p>
+                    <p>• {syncStatus.result.skipped} duplicates skipped</p>
+                    {syncStatus.result.errors.length > 0 && (
+                      <p className="text-rose-600">
+                        • {syncStatus.result.errors.length} errors occurred
+                      </p>
+                    )}
+                  </>
+                )}
+                {syncStatus.bidirectionalResult && (
+                  <>
+                    <p>
+                      • ↗️ {syncStatus.bidirectionalResult.localToDbSynced}{" "}
+                      local changes synced to cloud
+                    </p>
+                    <p>
+                      • ↙️ {syncStatus.bidirectionalResult.dbToLocalSynced}{" "}
+                      cloud changes synced locally
+                    </p>
+                    {syncStatus.bidirectionalResult.conflicts > 0 && (
+                      <p>
+                        • 🔀 {syncStatus.bidirectionalResult.conflicts}{" "}
+                        conflicts resolved
+                      </p>
+                    )}
+                    {syncStatus.bidirectionalResult.errors.length > 0 && (
+                      <p className="text-rose-600">
+                        • {syncStatus.bidirectionalResult.errors.length} sync
+                        errors
+                      </p>
+                    )}
+                  </>
+                )}
+                <p>• 💾 Local storage always preserved for offline access</p>
+              </div>
             </div>
-            <div className="text-xs text-stone-600 space-y-1">
-              <p>• {syncStatus.result.synced} goals synced to cloud</p>
-              <p>• {syncStatus.result.skipped} duplicates skipped</p>
-              {syncStatus.result.errors.length > 0 && (
-                <p className="text-rose-600">
-                  • {syncStatus.result.errors.length} errors occurred
-                </p>
-              )}
-              <p>
-                • Local storage{" "}
-                {syncStatus.result.clearedLocal ? "cleared" : "preserved"}
-              </p>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Instructions */}
         <div className="text-xs text-stone-500 p-3 bg-stone-50 rounded-lg">
           <p className="font-medium mb-1">How it works:</p>
           <ul className="space-y-1">
             <li>
-              • <strong>Without account:</strong> Goals stored in browser's
-              local storage
+              • <strong>All users:</strong> Goals stored locally for instant
+              offline access
             </li>
             <li>
-              • <strong>With account:</strong> Goals automatically sync to cloud
-              database
+              • <strong>Free plan (Seedling):</strong> Local storage only, works
+              completely offline
             </li>
             <li>
-              • <strong>Sign in:</strong> Local goals transfer to your account
-              seamlessly
+              • <strong>Paid plan (Bloom):</strong> Local storage + automatic
+              cloud sync
             </li>
             <li>
-              • <strong>Offline:</strong> App works completely offline with
-              local storage
+              • <strong>Cloud sync:</strong> Bidirectional sync keeps all
+              devices in sync
+            </li>
+            <li>
+              • <strong>Offline-first:</strong> Always works even without
+              internet
             </li>
           </ul>
         </div>
