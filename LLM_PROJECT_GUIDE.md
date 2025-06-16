@@ -18,14 +18,14 @@
 
 ### Core Components
 
-```
+\`\`\`
 ┌─ Authentication (Supabase Auth)
 ├─ User Management (user_profiles table)
 ├─ Payment Processing (Stripe + webhooks)
 ├─ Goal Management (goals + milestones tables)
 ├─ AI Integration (goal breakdown/coaching)
 └─ Subscription Management (plans + limits)
-```
+\`\`\`
 
 ### Database Schema
 
@@ -47,13 +47,13 @@
 
 ### Plans Configuration
 
-```typescript
+\`\`\`typescript
 // Located in: lib/stripe-config.ts
 PLANS = {
   seedling: { price: 0, goalsLimit: 3 },    // Free plan
   bloom: { price: 9, goalsLimit: -1 }       // Premium plan (unlimited)
 }
-```
+\`\`\`
 
 ### Webhook Endpoints (Production)
 
@@ -63,15 +63,15 @@ PLANS = {
 
 ### Payment Flow
 
-```
+\`\`\`
 User Payment → Stripe Checkout → Webhook Event → Database Update → User Permissions
-```
+\`\`\`
 
 ## 🔧 Environment Variables
 
 ### Required Variables
 
-```bash
+\`\`\`bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -86,13 +86,13 @@ STRIPE_BLOOM_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET_SNAP=whsec_dECYZWpiAj5wXSXOxLkMxpV06qgQneDK
 STRIPE_WEBHOOK_SECRET_THIN=whsec_Qt7qb9KUafz7z3jG29YregGfi3LocZwv
 STRIPE_WEBHOOK_SECRET=whsec_... (optional legacy)
-```
+\`\`\`
 
 ## 📁 File Organization
 
 ### Key Directories
 
-```
+\`\`\`
 app/
 ├── api/
 │   ├── stripe/                 # Stripe payment endpoints
@@ -114,7 +114,7 @@ contexts/
 
 types/
 └── database.ts                # TypeScript type definitions
-```
+\`\`\`
 
 ### Critical Files for LLMs to Understand
 
@@ -147,9 +147,9 @@ types/
 
 ### Authentication Flow
 
-```
+\`\`\`
 User Sign Up → Profile Creation → Plan Assignment → Goal Access
-```
+\`\`\`
 
 ### Permission Checks
 
@@ -161,7 +161,7 @@ User Sign Up → Profile Creation → Plan Assignment → Goal Access
 
 ### Development Tools
 
-```bash
+\`\`\`bash
 # System health check
 curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
 
@@ -170,7 +170,7 @@ curl "http://localhost:3000/api/dev/check-stripe-config" | jq .
 
 # Manual subscription sync
 curl -X POST "http://localhost:3000/api/stripe/sync-subscription"
-```
+\`\`\`
 
 ### Expected Responses
 
@@ -213,21 +213,21 @@ curl -X POST "http://localhost:3000/api/stripe/sync-subscription"
 
 ### User Registration
 
-```
+\`\`\`
 Auth Sign Up → Trigger → Profile Creation → Plan Assignment (Seedling)
-```
+\`\`\`
 
 ### Payment Processing
 
-```
+\`\`\`
 Checkout → Stripe → Webhook → Subscription Creation → Profile Update → Permissions
-```
+\`\`\`
 
 ### Goal Creation
 
-```
+\`\`\`
 User Request → Plan Check → Limit Validation → Database Insert → Response
-```
+\`\`\`
 
 ## 🔄 State Management
 
@@ -314,12 +314,12 @@ User Request → Plan Check → Limit Validation → Database Insert → Respons
 
 ### Logging Patterns
 
-```typescript
+\`\`\`typescript
 console.log('✅ [component] Success message')
 console.error('❌ [component] Error message')
 console.warn('⚠️ [component] Warning message')
 console.log('🔍 [component] Debug info')
-```
+\`\`\`
 
 ## 🔍 Debugging Strategies
 
