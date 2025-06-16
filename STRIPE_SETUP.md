@@ -42,7 +42,7 @@ This guide will help you complete the Stripe payment integration for your Lunra 
 
 Create a `.env.local` file in your project root with these variables:
 
-```bash
+\`\`\`bash
 # Existing Supabase vars (keep these)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -53,7 +53,7 @@ STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 STRIPE_BLOOM_PRICE_ID=price_your_bloom_plan_price_id_here
-```
+\`\`\`
 
 **Where to find these:**
 
@@ -66,9 +66,9 @@ STRIPE_BLOOM_PRICE_ID=price_your_bloom_plan_price_id_here
 
 Run this SQL in your Supabase SQL Editor:
 
-```sql
+\`\`\`sql
 -- Run the entire content of scripts/create-subscription-tables.sql
-```
+\`\`\`
 
 Copy and paste the entire content from `scripts/create-subscription-tables.sql` into your Supabase SQL Editor and execute it.
 
@@ -198,12 +198,12 @@ If webhooks aren't working:
 2. **Verify signature:** The webhook secret must match exactly
 3. **Test endpoint:** Use `curl` or Postman to test the webhook endpoint manually
 
-```bash
+\`\`\`bash
 # Test webhook endpoint is accessible
 curl -X POST http://localhost:3000/api/stripe/webhook \
   -H "Content-Type: application/json" \
   -d '{"test": "data"}'
-```
+\`\`\`
 
 ## 📈 Next Steps
 

@@ -8,11 +8,11 @@ This guide shows how to set up Stripe payments without webhooks for immediate te
 
 Add these to your `.env.local` file:
 
-```bash
+\`\`\`bash
 # Stripe Keys
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
+\`\`\`
 
 ### 2. Create Products in Stripe Dashboard
 
@@ -30,7 +30,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 3. **Update Price ID in Code:**
 
-   ```typescript
+   \`\`\`typescript
    // In lib/stripe.ts
    export const PLANS = {
      seedling: {
@@ -46,24 +46,24 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
        priceId: 'price_YOUR_ACTUAL_PRICE_ID_HERE', // Replace with your Price ID
      },
    }
-   ```
+   \`\`\`
 
 ### 3. Set Up Database
 
 Run the subscription tables migration:
 
-```bash
+\`\`\`bash
 # Execute the SQL in your Supabase SQL editor
 cat scripts/create-subscription-tables.sql
-```
+\`\`\`
 
 ### 4. Test the Integration
 
 1. **Start your development server:**
 
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 2. **Test payment flow:**
    - Go to your app's pricing page
@@ -176,9 +176,9 @@ Your payment system is configured but the `STRIPE_WEBHOOK_SECRET` environment va
    - Reveal the webhook secret (starts with `whsec_...`)
    - Add to your `.env.local`:
 
-   ```bash
+   \`\`\`bash
    STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
-   ```
+   \`\`\`
 
 3. **Restart your development server**
 
@@ -198,9 +198,9 @@ Only for development testing - never use in production.
 
 Run this to verify everything works:
 
-```bash
+\`\`\`bash
 curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-```
+\`\`\`
 
 Should show `"overallHealth": "healthy"`
 
