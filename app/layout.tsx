@@ -28,8 +28,15 @@ export default function RootLayout({
         <script async src="https://js.stripe.com/v3/"></script>
       </head>
       <body>
-        {/* Wrap children with ClientLayout */}
-        <ClientLayout>{children}</ClientLayout>
+            <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+      <AuthProvider>
+        <GoalDataProvider>
+          {children}
+          <Toaster />
+          <SonnerToaster />
+        </GoalDataProvider>
+      </AuthProvider>
+    </ThemeProvider> 
       </body>
     </html>
   );
