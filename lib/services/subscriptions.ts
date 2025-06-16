@@ -9,7 +9,7 @@ export async function getUserSubscription(userId: string): Promise<DatabaseSubsc
 		.from('subscriptions')
 		.select('*')
 		.eq('user_id', userId)
-		.single()
+		.maybeSingle()
 
 	if (error) {
 		console.error('Error fetching user subscription:', error)
@@ -24,7 +24,7 @@ export async function getUserProfile(userId: string): Promise<DatabaseUserProfil
 		.from('user_profiles')
 		.select('*')
 		.eq('user_id', userId)
-		.single()
+		.maybeSingle()
 
 	if (error) {
 		console.error('Error fetching user profile:', error)
@@ -132,7 +132,7 @@ export async function getSubscriptionByStripeId(stripeSubscriptionId: string): P
 		.from('subscriptions')
 		.select('*')
 		.eq('stripe_subscription_id', stripeSubscriptionId)
-		.single()
+		.maybeSingle()
 
 	if (error) {
 		console.error('Error fetching subscription by Stripe ID:', error)
