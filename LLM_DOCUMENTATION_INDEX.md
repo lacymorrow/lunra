@@ -89,16 +89,16 @@ This is your comprehensive guide to working on the **Lunra AI Goal Setting Appli
 
 1. **Understand the system:**
 
-   ```bash
+   \`\`\`bash
    # Read: LLM_PROJECT_GUIDE.md (architecture overview)
    # Read: LLM_RULES_AND_CONVENTIONS.md (development rules)
-   ```
+   \`\`\`
 
 2. **Check system health:**
 
-   ```bash
+   \`\`\`bash
    curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-   ```
+   \`\`\`
 
 3. **Verify what you're seeing:**
    - `"overallHealth": "healthy"` = Everything working
@@ -106,11 +106,11 @@ This is your comprehensive guide to working on the **Lunra AI Goal Setting Appli
 
 4. **Test payment flow:**
 
-   ```bash
+   \`\`\`bash
    # Use test card: 4242 4242 4242 4242
    # Verify webhook processing in logs
    # Check user permissions update
-   ```
+   \`\`\`
 
 ### For Specific Tasks
 
@@ -146,17 +146,17 @@ This is your comprehensive guide to working on the **Lunra AI Goal Setting Appli
 
 ### System Architecture
 
-```
+\`\`\`
 User Auth (Supabase) → Profile Management → Plan Limits → Goal Creation
                                     ↓
 Payment (Stripe) → Webhooks → Subscription Management → Permission Updates
-```
+\`\`\`
 
 ### Data Flow
 
-```
+\`\`\`
 Sign Up → Profile (Seedling) → Limited Goals → Upgrade → Payment → Webhook → Unlimited Goals
-```
+\`\`\`
 
 ## 🚨 Critical Rules Reminder
 
@@ -198,9 +198,9 @@ Sign Up → Profile (Seedling) → Limited Goals → Upgrade → Payment → Web
 
 1. **Check system health:**
 
-   ```bash
+   \`\`\`bash
    curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-   ```
+   \`\`\`
 
 2. **Identify the issue:**
    - Payment processing: Check Stripe configuration
