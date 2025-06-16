@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/auth-context";
 import { useGoalData } from "@/contexts/goal-data-context";
-import { useLocalGoals } from "@/hooks/use-local-storage";
 import {
   CheckCircle,
   Cloud,
@@ -27,8 +26,12 @@ import { useState } from "react";
 
 export function OfflineDemo() {
   const { user, userProfile } = useAuth();
-  const { dataManager, syncStatus, triggerManualSync } = useGoalData();
-  const { goals: localGoals, addGoal, deleteGoal } = useLocalGoals();
+  const {
+    goals: localGoals,
+    dataManager,
+    syncStatus,
+    triggerManualSync,
+  } = useGoalData();
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalDescription, setNewGoalDescription] = useState("");
 

@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
 import { useGoalData } from "@/contexts/goal-data-context";
-import { useLocalDataStatus } from "@/hooks/use-local-storage";
 import {
   AlertTriangle,
   CheckCircle,
@@ -36,8 +35,11 @@ interface SiteHeaderProps {
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, userProfile, signOut } = useAuth();
-  const { syncStatus } = useGoalData();
-  const { hasLocalData, localDataCount } = useLocalDataStatus();
+  const { goals, syncStatus } = useGoalData();
+
+  // Use the same data source as the rest of the app
+  const hasLocalData = goals.length > 0;
+  const localDataCount = goals.length;
 
   const isLanding = variant === "landing";
 
