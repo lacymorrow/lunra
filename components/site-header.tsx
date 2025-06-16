@@ -249,12 +249,6 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 >
                   Check-in
                 </Link>
-                <Link
-                  href="/analytics"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
-                >
-                  Analytics
-                </Link>
                 {!user && (
                   <>
                     <Link href="/auth/signin">
@@ -432,13 +426,6 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Check-in
-                </Link>
-                <Link
-                  href="/analytics"
-                  className="text-stone-800 py-2 px-4 rounded-lg hover:bg-stone-50"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Analytics
                 </Link>
                 <div className="pt-2 border-t border-stone-100">
                   <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
