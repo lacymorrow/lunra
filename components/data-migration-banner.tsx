@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   AlertCircle,
   CheckCircle,
-  CloudOff,
   Database,
   Info,
   RefreshCw,
@@ -18,13 +17,11 @@ import {
 import { useEffect, useState } from "react";
 
 export function DataMigrationBanner() {
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const { dataManager, refreshGoals, syncStatus } = useGoalData();
   const { toast } = useToast();
   const [isVisible, setIsVisible] = useState(true);
   const [localGoalsCount, setLocalGoalsCount] = useState(0);
-
-  const isPaidUser = user && userProfile?.plan_id === "bloom";
 
   // Check for localStorage goals and update count
   useEffect(() => {
@@ -48,69 +45,53 @@ export function DataMigrationBanner() {
   }, []);
 
   const handleManualSync = async () => {
-    if (!isPaidUser) {
-      toast({
-        title: "Sync Not Available",
-        description:
-          "Cloud sync is available with the Bloom plan. Your goals remain safely stored locally.",
-        variant: "default",
-      });
-      return;
-    }
-
     try {
       const result = await dataManager.syncLocalGoalsToDatabase();
       await refreshGoals();
 
       if (result.synced > 0) {
         toast({
-          title: "🎉 Initial Sync Successful!",
+          title: "🎉 Manual Sync Successful!",
           description: `${result.synced} goal${
             result.synced > 1 ? "s" : ""
-          } synced to the cloud. Local storage preserved for offline access.`,
+          } synced to your account.`,
         });
       } else if (result.skipped > 0) {
         toast({
           title: "Nothing to Sync",
           description: `All ${result.skipped} goal${
             result.skipped > 1 ? "s are" : " is"
-          } already in the cloud. Local storage preserved.`,
+          } already in your account.`,
         });
+      }
+
+      if (result.clearedLocal) {
+        setIsVisible(false);
       }
     } catch (error) {
       console.error("Manual sync error:", error);
       toast({
         title: "Sync Failed",
-        description:
-          "Please try again or contact support. Your goals remain safe locally.",
+        description: "Please try again or contact support",
         variant: "destructive",
       });
     }
   };
 
-  // Show banner for different scenarios
-  const shouldShow = user && localGoalsCount > 0 && isVisible;
+  // Show banner if:
+  // 1. User is logged in
+  // 2. Has local storage goals
+  // 3. Banner is still visible
+  // 4. Not currently syncing automatically
+  const shouldShow =
+    user && localGoalsCount > 0 && isVisible && !syncStatus.isLoading;
 
   if (!shouldShow) {
     return null;
   }
 
-  // Determine banner state based on user plan and sync status
+  // Determine banner state based on sync status
   const getSyncStatusDisplay = () => {
-    if (!isPaidUser) {
-      return {
-        icon: CloudOff,
-        color: "bg-blue-50 border-blue-200",
-        badgeVariant: "secondary" as const,
-        badgeText: "Local Storage",
-        title: "Goals Stored Locally",
-        description: `You have ${localGoalsCount} goal${
-          localGoalsCount > 1 ? "s" : ""
-        } stored locally. Upgrade to Bloom for cloud sync and cross-device access.`,
-        showUpgradeButton: true,
-      };
-    }
-
     if (syncStatus.isLoading) {
       return {
         icon: RefreshCw,
@@ -119,13 +100,12 @@ export function DataMigrationBanner() {
         badgeText: "Syncing...",
         title: "Syncing Your Goals",
         description:
-          "Setting up cloud sync for your goals. Local storage is preserved for offline access.",
-        showUpgradeButton: false,
+          "Please wait while we transfer your goals to your account...",
       };
     }
 
     if (syncStatus.result) {
-      const { synced, skipped, errors } = syncStatus.result;
+      const { synced, skipped, errors, clearedLocal } = syncStatus.result;
 
       if (errors.length > 0) {
         return {
@@ -133,35 +113,34 @@ export function DataMigrationBanner() {
           color: "bg-yellow-50 border-yellow-200",
           badgeVariant: "destructive" as const,
           badgeText: "Sync Issues",
-          title: "Cloud Sync Completed with Issues",
-          description: `${synced} synced, ${skipped} skipped, ${errors.length} failed. Local storage preserved for offline access.`,
-          showUpgradeButton: false,
+          title: "Sync Completed with Issues",
+          description: `${synced} synced, ${skipped} skipped, ${
+            errors.length
+          } failed. Local data ${clearedLocal ? "cleared" : "preserved"}.`,
         };
       }
 
-      return {
-        icon: CheckCircle,
-        color: "bg-green-50 border-green-200",
-        badgeVariant: "default" as const,
-        badgeText: "Cloud Sync Active",
-        title: "Goals Synced to Cloud!",
-        description: `${
-          synced + skipped
-        } goals available in cloud + local storage. Automatic sync is now active.`,
-        showUpgradeButton: false,
-      };
+      if (clearedLocal) {
+        return {
+          icon: CheckCircle,
+          color: "bg-green-50 border-green-200",
+          badgeVariant: "default" as const,
+          badgeText: "Sync Complete",
+          title: "Goals Successfully Synced!",
+          description: `${synced} goals transferred to your account. Local storage cleared.`,
+        };
+      }
     }
 
     return {
       icon: Database,
       color: "bg-blue-50 border-blue-200",
       badgeVariant: "secondary" as const,
-      badgeText: "Cloud Available",
-      title: "Set Up Cloud Sync",
+      badgeText: "Action Needed",
+      title: "Sync Your Local Goals",
       description: `You have ${localGoalsCount} goal${
         localGoalsCount > 1 ? "s" : ""
-      } stored locally. Sync them to the cloud for access across all devices.`,
-      showUpgradeButton: false,
+      } saved locally. Sync them to your account to access them anywhere.`,
     };
   };
 
@@ -180,7 +159,7 @@ export function DataMigrationBanner() {
                 statusDisplay.badgeVariant === "destructive"
                   ? "text-yellow-600"
                   : statusDisplay.badgeVariant === "default" &&
-                    statusDisplay.badgeText === "Cloud Sync Active"
+                    statusDisplay.badgeText === "Sync Complete"
                   ? "text-green-600"
                   : "text-blue-600"
               }`}
@@ -196,44 +175,36 @@ export function DataMigrationBanner() {
                 {statusDisplay.description}
               </p>
 
-              <div className="flex gap-2">
-                {statusDisplay.showUpgradeButton ? (
-                  <Button
-                    size="sm"
-                    className="bg-rose-400 hover:bg-rose-500"
-                    onClick={() => (window.location.href = "/billing")}
-                  >
-                    Upgrade to Bloom
-                  </Button>
-                ) : isPaidUser && !syncStatus.result ? (
+              {!syncStatus.isLoading && !syncStatus.result?.clearedLocal && (
+                <div className="flex gap-2">
                   <Button
                     size="sm"
                     onClick={handleManualSync}
                     disabled={syncStatus.isLoading}
                   >
                     <Database className="h-4 w-4 mr-1" />
-                    Enable Cloud Sync
+                    Sync Now
                   </Button>
-                ) : null}
 
-                {syncStatus.result?.errors &&
-                  syncStatus.result.errors.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        toast({
-                          title: "Sync Errors",
-                          description: syncStatus.result!.errors.join("; "),
-                          variant: "destructive",
-                        });
-                      }}
-                    >
-                      <Info className="h-4 w-4 mr-1" />
-                      View Errors
-                    </Button>
-                  )}
-              </div>
+                  {syncStatus.result?.errors &&
+                    syncStatus.result.errors.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          toast({
+                            title: "Sync Errors",
+                            description: syncStatus.result!.errors.join("; "),
+                            variant: "destructive",
+                          });
+                        }}
+                      >
+                        <Info className="h-4 w-4 mr-1" />
+                        View Errors
+                      </Button>
+                    )}
+                </div>
+              )}
             </div>
           </div>
 

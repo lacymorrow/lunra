@@ -14,12 +14,6 @@ interface SyncStatus {
     errors: string[];
     clearedLocal: boolean;
   } | null;
-  bidirectionalResult?: {
-    localToDbSynced: number;
-    dbToLocalSynced: number;
-    conflicts: number;
-    errors: string[];
-  } | null;
 }
 
 interface GoalDataContextType {
@@ -29,7 +23,6 @@ interface GoalDataContextType {
   error: Error | null;
   refreshGoals: () => Promise<void>;
   syncStatus: SyncStatus;
-  triggerManualSync: () => Promise<void>;
 }
 
 const GoalDataContext = createContext<GoalDataContextType | undefined>(
@@ -37,7 +30,7 @@ const GoalDataContext = createContext<GoalDataContextType | undefined>(
 );
 
 export function GoalDataProvider({ children }: { children: React.ReactNode }) {
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const [dataManager, setDataManager] = useState<GoalDataManager>(() =>
     getDataManager()
   );
@@ -47,29 +40,20 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isLoading: false,
     result: null,
-    bidirectionalResult: null,
   });
 
-  // Update data manager when user or profile changes
+  // Update data manager when user changes
   useEffect(() => {
-    const manager = getDataManager(user?.id || undefined, userProfile);
+    const manager = getDataManager(user?.id || undefined);
     setDataManager(manager);
 
-    // If user just logged in, do initial sync
+    // If user just logged in, sync local goals to database
     if (user?.id) {
-      setSyncStatus({
-        isLoading: true,
-        result: null,
-        bidirectionalResult: null,
-      });
+      setSyncStatus({ isLoading: true, result: null });
       manager
         .syncLocalGoalsToDatabase()
         .then((result) => {
-          setSyncStatus({
-            isLoading: false,
-            result,
-            bidirectionalResult: null,
-          });
+          setSyncStatus({ isLoading: false, result });
           refreshGoals();
         })
         .catch((err) => {
@@ -82,13 +66,12 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
               errors: [err?.message || String(err)],
               clearedLocal: false,
             },
-            bidirectionalResult: null,
           });
         });
     } else {
       refreshGoals();
     }
-  }, [user?.id, userProfile?.plan_id]);
+  }, [user?.id]);
 
   // Function to refresh goals
   const refreshGoals = async () => {
@@ -106,49 +89,9 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Manual sync for paid users
-  const triggerManualSync = async () => {
-    if (!user?.id || userProfile?.plan_id !== "bloom") {
-      console.log("Manual sync not available for non-paid users");
-      return;
-    }
-
-    setSyncStatus((prev) => ({ ...prev, isLoading: true }));
-
-    try {
-      const result = await dataManager.bidirectionalSync();
-      setSyncStatus((prev) => ({
-        ...prev,
-        isLoading: false,
-        bidirectionalResult: result,
-      }));
-      await refreshGoals();
-    } catch (error) {
-      console.error("Manual sync failed:", error);
-      setSyncStatus((prev) => ({
-        ...prev,
-        isLoading: false,
-        bidirectionalResult: {
-          localToDbSynced: 0,
-          dbToLocalSynced: 0,
-          conflicts: 0,
-          errors: [error instanceof Error ? error.message : String(error)],
-        },
-      }));
-    }
-  };
-
   return (
     <GoalDataContext.Provider
-      value={{
-        dataManager,
-        goals,
-        loading,
-        error,
-        refreshGoals,
-        syncStatus,
-        triggerManualSync,
-      }}
+      value={{ dataManager, goals, loading, error, refreshGoals, syncStatus }}
     >
       {children}
     </GoalDataContext.Provider>

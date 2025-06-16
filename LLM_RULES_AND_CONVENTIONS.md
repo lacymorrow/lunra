@@ -157,9 +157,9 @@
 2. **Test error conditions second**
 3. **Use development tools:**
 
-   \`\`\`bash
+   ```bash
    curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
-   \`\`\`
+   ```
 
 4. **Verify database state after operations**
 

@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
 import { useGoalData } from "@/contexts/goal-data-context";
+import { useLocalDataStatus } from "@/hooks/use-local-storage";
 import {
   AlertTriangle,
   CheckCircle,
   Cloud,
   CloudOff,
   CreditCard,
+  Database,
   LogOut,
   Menu,
   Moon,
@@ -34,12 +36,9 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, userProfile, signOut } = useAuth();
-  const { goals, syncStatus } = useGoalData();
-
-  // Use the same data source as the rest of the app
-  const hasLocalData = goals.length > 0;
-  const localDataCount = goals.length;
+  const { user, signOut } = useAuth();
+  const { syncStatus } = useGoalData();
+  const { hasLocalData, localDataCount } = useLocalDataStatus();
 
   const isLanding = variant === "landing";
 
@@ -64,86 +63,69 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
       return null;
     }
 
-    // For authenticated users - show different status based on plan
-    const isPaidUser = user && userProfile?.plan_id === "bloom";
-
-    if (isPaidUser) {
-      // Paid users: Show sync status
-      if (syncStatus.isLoading) {
-        return (
-          <div className="flex items-center gap-1">
-            <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
-            <Badge variant="default" className="text-xs">
-              Syncing...
-            </Badge>
-          </div>
-        );
-      }
-
-      if (syncStatus.bidirectionalResult) {
-        const { errors, localToDbSynced, dbToLocalSynced } =
-          syncStatus.bidirectionalResult;
-
-        if (errors.length > 0) {
-          return (
-            <div className="flex items-center gap-1">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <Badge variant="destructive" className="text-xs">
-                Sync Issues
-              </Badge>
-            </div>
-          );
-        }
-
-        if (localToDbSynced > 0 || dbToLocalSynced > 0) {
-          return (
-            <div className="flex items-center gap-1">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <Badge
-                variant="default"
-                className="text-xs bg-green-100 text-green-700"
-              >
-                ↕️ Synced
-              </Badge>
-            </div>
-          );
-        }
-      }
-
-      // Show cloud status for paid users
+    // Authenticated user sync status
+    if (syncStatus.isLoading) {
       return (
         <div className="flex items-center gap-1">
-          <Cloud className="h-4 w-4 text-green-500" />
-          <Badge
-            variant="default"
-            className="text-xs bg-green-100 text-green-700"
-          >
-            Cloud + Local
-          </Badge>
-        </div>
-      );
-    } else {
-      // Free users: Show local-only status
-      if (hasLocalData) {
-        return (
-          <div className="flex items-center gap-1">
-            <CloudOff className="h-4 w-4 text-blue-500" />
-            <Badge variant="secondary" className="text-xs">
-              {localDataCount} Local Only
-            </Badge>
-          </div>
-        );
-      }
-
-      return (
-        <div className="flex items-center gap-1">
-          <CloudOff className="h-4 w-4 text-blue-500" />
-          <Badge variant="secondary" className="text-xs">
-            Local Mode
+          <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+          <Badge variant="default" className="text-xs">
+            Syncing...
           </Badge>
         </div>
       );
     }
+
+    if (syncStatus.result) {
+      const { synced, errors, clearedLocal } = syncStatus.result;
+
+      if (errors.length > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <Badge variant="destructive" className="text-xs">
+              Sync Issues
+            </Badge>
+          </div>
+        );
+      }
+
+      if (clearedLocal && synced > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <Badge
+              variant="default"
+              className="text-xs bg-green-100 text-green-700"
+            >
+              Synced
+            </Badge>
+          </div>
+        );
+      }
+    }
+
+    if (hasLocalData) {
+      return (
+        <div className="flex items-center gap-1">
+          <Database className="h-4 w-4 text-amber-500" />
+          <Badge variant="secondary" className="text-xs">
+            {localDataCount} to Sync
+          </Badge>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        <Cloud className="h-4 w-4 text-green-500" />
+        <Badge
+          variant="default"
+          className="text-xs bg-green-100 text-green-700"
+        >
+          Cloud
+        </Badge>
+      </div>
+    );
   };
 
   return (
@@ -248,6 +230,12 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   className="text-stone-600 hover:text-stone-800 transition-colors font-light"
                 >
                   Check-in
+                </Link>
+                <Link
+                  href="/analytics"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                >
+                  Analytics
                 </Link>
                 {!user && (
                   <>
@@ -426,6 +414,13 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Check-in
+                </Link>
+                <Link
+                  href="/analytics"
+                  className="text-stone-800 py-2 px-4 rounded-lg hover:bg-stone-50"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Analytics
                 </Link>
                 <div className="pt-2 border-t border-stone-100">
                   <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
