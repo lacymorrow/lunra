@@ -14,20 +14,20 @@ Creates a Stripe checkout session for plan upgrades.
 
 **Request:**
 
-```json
+\`\`\`json
 {
   "planId": "bloom"
 }
-```
+\`\`\`
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "sessionId": "cs_test_...",
   "url": "https://checkout.stripe.com/..."
 }
-```
+\`\`\`
 
 **Authentication:** Required
 
@@ -59,13 +59,13 @@ Manually syncs user subscription status from Stripe.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "success": true,
   "status": "active",
   "plan": "bloom"
 }
-```
+\`\`\`
 
 **Use Case:** When webhook processing fails
 
@@ -79,11 +79,11 @@ Creates Stripe customer portal session for billing management.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "url": "https://billing.stripe.com/..."
 }
-```
+\`\`\`
 
 ---
 
@@ -104,12 +104,12 @@ Primary webhook endpoint for production Stripe events.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "received": true,
   "endpoint": "snapshot"
 }
-```
+\`\`\`
 
 ---
 
@@ -123,12 +123,12 @@ Secondary webhook endpoint for redundancy.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "received": true,
   "endpoint": "thin"
 }
-```
+\`\`\`
 
 ---
 
@@ -148,7 +148,7 @@ Comprehensive health check for the entire payment system.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "timestamp": "2025-06-10T20:09:45.508Z",
   "overallHealth": "healthy|critical",
@@ -173,7 +173,7 @@ Comprehensive health check for the entire payment system.
     }
   }
 }
-```
+\`\`\`
 
 **Usage:** Primary diagnostic tool for debugging payment issues
 
@@ -185,7 +185,7 @@ Validates Stripe configuration and price setup.
 
 **Response:**
 
-```json
+\`\`\`json
 {
   "success": true,
   "price": {
@@ -194,7 +194,7 @@ Validates Stripe configuration and price setup.
     "unitAmount": 900
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -216,7 +216,7 @@ Retrieves user profile with plan information.
 
 **Returns:**
 
-```typescript
+\`\`\`typescript
 {
   id: string
   user_id: string
@@ -224,7 +224,7 @@ Retrieves user profile with plan information.
   goals_limit: number
   stripe_customer_id: string | null
 }
-```
+\`\`\`
 
 ---
 
@@ -245,12 +245,12 @@ Updates user profile, typically after subscription changes.
 
 **Common Usage:**
 
-```typescript
+\`\`\`typescript
 await updateUserProfile(userId, {
   plan_id: "bloom",
   goals_limit: -1
 })
-```
+\`\`\`
 
 ---
 
@@ -339,7 +339,7 @@ Primary hook for accessing user authentication state.
 
 **Returns:**
 
-```typescript
+\`\`\`typescript
 {
   user: User | null
   session: Session | null
@@ -351,13 +351,13 @@ Primary hook for accessing user authentication state.
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
-```
+\`\`\`
 
 **Usage:**
 
-```typescript
+\`\`\`typescript
 const { user, userProfile, subscription, refreshProfile } = useAuth()
-```
+\`\`\`
 
 ---
 
@@ -390,7 +390,7 @@ Unified data management for goals with localStorage fallback.
 
 Core plan configuration object.
 
-```typescript
+\`\`\`typescript
 export const PLANS = {
   seedling: {
     name: 'Seedling',
@@ -406,7 +406,7 @@ export const PLANS = {
     features: [...]
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -429,10 +429,10 @@ Creates server-side client with user authentication context.
 
 **Usage in API routes:**
 
-```typescript
+\`\`\`typescript
 const supabase = createClientServerWithAuth(request)
 const { data: { user } } = await supabase.auth.getUser()
-```
+\`\`\`
 
 ---
 
@@ -472,7 +472,7 @@ const { data: { user } } = await supabase.auth.getUser()
 
 ### Payment Flow Testing
 
-```typescript
+\`\`\`typescript
 // 1. Check system health
 const health = await fetch('/api/dev/test-payment-flow')
 
@@ -490,11 +490,11 @@ const session = await fetch('/api/stripe/create-checkout-session', {
 const profile = await getUserProfile(userId)
 expect(profile.plan_id).toBe('bloom')
 expect(profile.goals_limit).toBe(-1)
-```
+\`\`\`
 
 ### Subscription State Testing
 
-```typescript
+\`\`\`typescript
 // Test all subscription states
 const states = ['active', 'past_due', 'canceled', 'incomplete']
 
@@ -502,7 +502,7 @@ for (const state of states) {
   await updateSubscription(userId, { status: state })
   // Verify appropriate user access level
 }
-```
+\`\`\`
 
 ---
 
@@ -510,7 +510,7 @@ for (const state of states) {
 
 ### API Route Error Pattern
 
-```typescript
+\`\`\`typescript
 try {
   // Main logic
   return NextResponse.json({ success: true, data })
@@ -521,11 +521,11 @@ try {
     { status: 500 }
   )
 }
-```
+\`\`\`
 
 ### Service Function Error Pattern
 
-```typescript
+\`\`\`typescript
 export async function serviceFunction() {
   const { data, error } = await supabase.operation()
   
@@ -536,11 +536,11 @@ export async function serviceFunction() {
   
   return data
 }
-```
+\`\`\`
 
 ### Webhook Error Pattern
 
-```typescript
+\`\`\`typescript
 if (!webhookSecret) {
   console.error('🚨 [webhook] Secret not configured!')
   return NextResponse.json({
@@ -548,7 +548,7 @@ if (!webhookSecret) {
     message: 'Add webhook secret to environment'
   }, { status: 500 })
 }
-```
+\`\`\`
 
 ---
 
@@ -556,7 +556,7 @@ if (!webhookSecret) {
 
 ### Tables Overview
 
-```sql
+\`\`\`sql
 -- Core authentication and profiles
 user_profiles (id, user_id, plan_id, goals_limit, stripe_customer_id)
 subscriptions (id, user_id, stripe_subscription_id, status, plan_id)
@@ -564,7 +564,7 @@ subscriptions (id, user_id, stripe_subscription_id, status, plan_id)
 -- Goal management
 goals (id, user_id, title, description, progress, status)
 milestones (id, goal_id, week, task, status, progress)
-```
+\`\`\`
 
 ### Key Constraints
 
@@ -579,27 +579,27 @@ milestones (id, goal_id, week, task, status, progress)
 
 ### Health Checks
 
-```bash
+\`\`\`bash
 # Overall system health
 curl "http://localhost:3000/api/dev/test-payment-flow" | jq .
 
 # Stripe configuration
 curl "http://localhost:3000/api/dev/check-stripe-config" | jq .
-```
+\`\`\`
 
 ### Manual Operations
 
-```bash
+\`\`\`bash
 # Sync user subscription
 curl -X POST "http://localhost:3000/api/stripe/sync-subscription"
 
 # Create billing portal session
 curl -X POST "http://localhost:3000/api/stripe/create-portal-session"
-```
+\`\`\`
 
 ### Database Queries
 
-```sql
+\`\`\`sql
 -- Check user plan status
 SELECT up.plan_id, up.goals_limit, s.status 
 FROM user_profiles up 
@@ -608,7 +608,7 @@ WHERE up.user_id = 'user-id';
 
 -- Count user goals
 SELECT COUNT(*) FROM goals WHERE user_id = 'user-id';
-```
+\`\`\`
 
 ---
 
