@@ -18,7 +18,6 @@ export const siteConfig = {
 	themeColor: "#f9a8d4", // rose-300
 	links: {
 		github: "https://github.com/lacymorrow/lunra",
-		twitter: "https://twitter.com/lunra_ai",
 	},
 } as const
 

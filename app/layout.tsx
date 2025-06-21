@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     title: siteConfig.title,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: "@lunra_ai",
+    // creator: "@lunra_ai",
   },
   icons: {
     icon: "/favicon.ico",
@@ -57,9 +57,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  verification: {
-    google: "", // Add Google Search Console verification code when available
   },
   alternates: {
     canonical: siteConfig.url,
