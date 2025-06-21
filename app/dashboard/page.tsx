@@ -34,6 +34,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+// Note: This is a client component so metadata is handled dynamically via layout.tsx
+// For authenticated pages, we could add dynamic metadata based on user data
+
 interface SavedGoal {
   id: number;
   title: string;
