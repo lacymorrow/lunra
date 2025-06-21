@@ -6,6 +6,7 @@ import { convertDatabaseToLocalStorage } from "@/types/database"
 // Local storage keys
 const GOALS_KEY = "savedGoals"
 const LAST_SYNC_KEY = "lastSyncTimestamp"
+const GOAL_SIGNATURES_KEY = "goalSignatures" // Track goal signatures for duplicate prevention
 
 // Helper functions for localStorage
 function getLocalGoals(): SavedGoal[] {
@@ -20,6 +21,65 @@ function setLocalGoals(goals: SavedGoal[]): void {
 	localStorage.setItem(GOALS_KEY, JSON.stringify(goals))
 }
 
+// Generate unique signature for goal content (for duplicate detection)
+function generateGoalSignature(goal: Omit<SavedGoal, "id" | "createdAt"> | SavedGoal): string {
+	const normalized = {
+		title: goal.title.toLowerCase().trim(),
+		description: (goal.description || '').toLowerCase().trim(),
+		timeline: (goal.timeline || '').toLowerCase().trim(),
+		// Include milestone count and first few tasks for better uniqueness
+		milestoneCount: goal.milestones?.length || 0,
+		firstMilestones: goal.milestones?.slice(0, 3).map(m => m.task.toLowerCase().trim()).join('|') || ''
+	}
+	return `${normalized.title}|${normalized.description}|${normalized.timeline}|${normalized.milestoneCount}|${normalized.firstMilestones}`
+}
+
+// Manage goal signatures for duplicate detection
+function getGoalSignatures(): Set<string> {
+	if (typeof window === "undefined") return new Set()
+	const signatures = localStorage.getItem(GOAL_SIGNATURES_KEY)
+	return signatures ? new Set(JSON.parse(signatures)) : new Set()
+}
+
+function setGoalSignatures(signatures: Set<string>): void {
+	if (typeof window === "undefined") return
+	localStorage.setItem(GOAL_SIGNATURES_KEY, JSON.stringify([...signatures]))
+}
+
+function addGoalSignature(signature: string): void {
+	const signatures = getGoalSignatures()
+	signatures.add(signature)
+	setGoalSignatures(signatures)
+}
+
+function removeGoalSignature(signature: string): void {
+	const signatures = getGoalSignatures()
+	signatures.delete(signature)
+	setGoalSignatures(signatures)
+}
+
+// Clean up orphaned signatures (signatures without corresponding goals)
+function cleanupOrphanedSignatures(): void {
+	if (typeof window === "undefined") return
+
+	const goals = getLocalGoals()
+	const signatures = getGoalSignatures()
+	const validSignatures = new Set(goals.map(g => generateGoalSignature(g)))
+
+	let cleaned = 0
+	for (const signature of signatures) {
+		if (!validSignatures.has(signature)) {
+			signatures.delete(signature)
+			cleaned++
+		}
+	}
+
+	if (cleaned > 0) {
+		setGoalSignatures(signatures)
+		console.log(`🧹 Cleaned up ${cleaned} orphaned goal signatures`)
+	}
+}
+
 function getLocalGoalById(id: number): SavedGoal | null {
 	const goals = getLocalGoals()
 	return goals.find((goal) => goal.id === id) || null
@@ -27,6 +87,16 @@ function getLocalGoalById(id: number): SavedGoal | null {
 
 function createLocalGoal(goal: Omit<SavedGoal, "id" | "createdAt">): SavedGoal {
 	const goals = getLocalGoals()
+	const signature = generateGoalSignature(goal)
+	const signatures = getGoalSignatures()
+
+	// Check for duplicate by signature
+	if (signatures.has(signature)) {
+		console.warn(`🚫 Duplicate goal detected, skipping creation: "${goal.title}"`)
+		// Return existing goal with same signature
+		const existingGoal = goals.find(g => generateGoalSignature(g) === signature)
+		if (existingGoal) return existingGoal
+	}
 
 	// Generate a new ID (simple implementation)
 	const newId = goals.length > 0 ? Math.max(...goals.map((g) => g.id)) + 1 : 1
@@ -39,6 +109,7 @@ function createLocalGoal(goal: Omit<SavedGoal, "id" | "createdAt">): SavedGoal {
 
 	goals.push(newGoal)
 	setLocalGoals(goals)
+	addGoalSignature(signature)
 	return newGoal
 }
 
@@ -136,9 +207,10 @@ export class GoalDataManager {
 		dbToLocalSynced: number;
 		conflicts: number;
 		errors: string[];
+		duplicatesSkipped: number;
 	}> {
 		if (!this.shouldSync) {
-			return { localToDbSynced: 0, dbToLocalSynced: 0, conflicts: 0, errors: [] }
+			return { localToDbSynced: 0, dbToLocalSynced: 0, conflicts: 0, errors: [], duplicatesSkipped: 0 }
 		}
 
 		console.log("🔄 Starting bidirectional sync for paid user")
@@ -148,6 +220,7 @@ export class GoalDataManager {
 				localToDbSynced: 0,
 				dbToLocalSynced: 0,
 				conflicts: 0,
+				duplicatesSkipped: 0,
 				errors: [] as string[]
 			}
 
@@ -156,39 +229,58 @@ export class GoalDataManager {
 			const dbGoals = await getGoals(this.userId!)
 			const dbGoalsConverted = dbGoals.map(convertDatabaseToLocalStorage)
 
-			// Create maps for easier lookup
+			// Create comprehensive maps for lookup by ID and signature
 			const localGoalsMap = new Map(localGoals.map(g => [g.id, g]))
 			const dbGoalsMap = new Map(dbGoalsConverted.map(g => [g.id, g]))
 
+			// Create signature maps to detect content duplicates
+			const localSignatureMap = new Map(localGoals.map(g => [generateGoalSignature(g), g]))
+			const dbSignatureMap = new Map(dbGoalsConverted.map(g => [generateGoalSignature(g), g]))
+
 			// Find goals that exist locally but not in database (sync up)
 			for (const localGoal of localGoals) {
-				if (!dbGoalsMap.has(localGoal.id)) {
-					try {
-						await createGoal(localGoal, this.userId!)
-						result.localToDbSynced++
-						console.log(`📤 Synced local goal to database: "${localGoal.title}"`)
-					} catch (error) {
-						const errorMsg = `Failed to sync local goal "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-						result.errors.push(errorMsg)
-						console.error(errorMsg)
-					}
+				const signature = generateGoalSignature(localGoal)
+
+				// Check if goal already exists in database by ID or signature
+				if (dbGoalsMap.has(localGoal.id) || dbSignatureMap.has(signature)) {
+					console.log(`⏭️ Skipping sync of local goal (duplicate detected): "${localGoal.title}"`)
+					result.duplicatesSkipped++
+					continue
+				}
+
+				try {
+					await createGoal(localGoal, this.userId!)
+					result.localToDbSynced++
+					console.log(`📤 Synced local goal to database: "${localGoal.title}"`)
+				} catch (error) {
+					const errorMsg = `Failed to sync local goal "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
+					result.errors.push(errorMsg)
+					console.error(errorMsg)
 				}
 			}
 
 			// Find goals that exist in database but not locally (sync down)
 			for (const dbGoal of dbGoalsConverted) {
-				if (!localGoalsMap.has(dbGoal.id)) {
-					try {
-						const localGoals = getLocalGoals()
-						localGoals.push(dbGoal)
-						setLocalGoals(localGoals)
-						result.dbToLocalSynced++
-						console.log(`📥 Synced database goal to local: "${dbGoal.title}"`)
-					} catch (error) {
-						const errorMsg = `Failed to sync database goal "${dbGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-						result.errors.push(errorMsg)
-						console.error(errorMsg)
-					}
+				const signature = generateGoalSignature(dbGoal)
+
+				// Check if goal already exists locally by ID or signature
+				if (localGoalsMap.has(dbGoal.id) || localSignatureMap.has(signature)) {
+					console.log(`⏭️ Skipping sync of database goal (duplicate detected): "${dbGoal.title}"`)
+					result.duplicatesSkipped++
+					continue
+				}
+
+				try {
+					const localGoals = getLocalGoals()
+					localGoals.push(dbGoal)
+					setLocalGoals(localGoals)
+					addGoalSignature(signature)
+					result.dbToLocalSynced++
+					console.log(`📥 Synced database goal to local: "${dbGoal.title}"`)
+				} catch (error) {
+					const errorMsg = `Failed to sync database goal "${dbGoal.title}": ${error instanceof Error ? error.message : String(error)}`
+					result.errors.push(errorMsg)
+					console.error(errorMsg)
 				}
 			}
 
@@ -222,6 +314,7 @@ export class GoalDataManager {
 				localToDbSynced: 0,
 				dbToLocalSynced: 0,
 				conflicts: 0,
+				duplicatesSkipped: 0,
 				errors: [errorMsg]
 			}
 		}
@@ -261,9 +354,9 @@ export class GoalDataManager {
 			const dbGoals = await getGoals(this.userId!)
 			console.log(`📊 Found ${dbGoals.length} existing goals in database`)
 
-			// Create a comprehensive duplicate detection system
+			// Create a comprehensive duplicate detection system using enhanced signatures
 			const dbGoalSignatures = new Set(
-				dbGoals.map(g => `${g.title.toLowerCase().trim()}|${g.description?.toLowerCase().trim() || ''}`)
+				dbGoals.map(g => generateGoalSignature(convertDatabaseToLocalStorage(g)))
 			)
 
 			let synced = 0
@@ -272,7 +365,7 @@ export class GoalDataManager {
 
 			// Process each local goal
 			for (const [index, localGoal] of localGoals.entries()) {
-				const signature = `${localGoal.title.toLowerCase().trim()}|${(localGoal.description || '').toLowerCase().trim()}`
+				const signature = generateGoalSignature(localGoal)
 
 				if (dbGoalSignatures.has(signature)) {
 					console.log(`⏭️  Skipping duplicate goal: "${localGoal.title}"`)
@@ -283,12 +376,20 @@ export class GoalDataManager {
 				try {
 					console.log(`📤 Syncing goal ${index + 1}/${localGoals.length}: "${localGoal.title}"`)
 					await createGoal(localGoal, this.userId!)
+					dbGoalSignatures.add(signature) // Add to set to prevent duplicates within this sync
 					synced++
 					console.log(`✅ Successfully synced: "${localGoal.title}"`)
 				} catch (error) {
-					const errorMsg = `Failed to sync "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-					console.error(`❌ ${errorMsg}`)
-					errors.push(errorMsg)
+					// Check if error indicates duplicate (e.g., database constraint violation)
+					const errorMessage = error instanceof Error ? error.message : String(error)
+					if (errorMessage.includes('duplicate') || errorMessage.includes('unique') || errorMessage.includes('constraint')) {
+						console.log(`⏭️  Database rejected duplicate goal: "${localGoal.title}"`)
+						skipped++
+					} else {
+						const errorMsg = `Failed to sync "${localGoal.title}": ${errorMessage}`
+						console.error(`❌ ${errorMsg}`)
+						errors.push(errorMsg)
+					}
 				}
 			}
 
@@ -318,6 +419,9 @@ export class GoalDataManager {
 
 	// Core CRUD operations - all operations now use localStorage as primary storage
 	async getGoals(): Promise<SavedGoal[]> {
+		// Clean up orphaned signatures before returning goals
+		cleanupOrphanedSignatures()
+
 		// Always return from localStorage for immediate offline access
 		return getLocalGoals()
 	}
@@ -335,6 +439,21 @@ export class GoalDataManager {
 	}
 
 	async createGoal(goalData: Omit<SavedGoal, "id" | "createdAt">): Promise<SavedGoal> {
+		// Check for duplicates before creating
+		const signature = generateGoalSignature(goalData)
+		const signatures = getGoalSignatures()
+
+		if (signatures.has(signature)) {
+			console.warn(`🚫 Duplicate goal creation attempt detected: "${goalData.title}"`)
+			// Return existing goal with same signature
+			const existingGoals = getLocalGoals()
+			const existingGoal = existingGoals.find(g => generateGoalSignature(g) === signature)
+			if (existingGoal) {
+				console.log(`🔄 Returning existing goal: "${existingGoal.title}"`)
+				return existingGoal
+			}
+		}
+
 		// Always create in localStorage first for immediate offline access
 		const localGoal = createLocalGoal(goalData)
 
@@ -344,7 +463,13 @@ export class GoalDataManager {
 				await createGoal(localGoal, this.userId!)
 				console.log(`🔄 Background sync: Created goal "${localGoal.title}" in database`)
 			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
+				// Check if it's a duplicate error
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				if (errorMessage.includes('duplicate') || errorMessage.includes('unique') || errorMessage.includes('constraint')) {
+					console.log(`⏭️ Database sync skipped - duplicate detected: "${localGoal.title}"`)
+				} else {
+					console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
+				}
 				// Don't throw error - local creation succeeded
 			}
 		}
@@ -384,6 +509,16 @@ export class GoalDataManager {
 	}
 
 	async deleteGoal(id: number | string): Promise<boolean> {
+		// Find the goal to get its signature before deletion
+		let goalToDelete: SavedGoal | null = null
+
+		if (typeof id === "number") {
+			goalToDelete = getLocalGoalById(id)
+		} else {
+			const localGoals = getLocalGoals()
+			goalToDelete = localGoals.find(g => g.id?.toString() === id) || null
+		}
+
 		// Always delete from localStorage first
 		let success = false
 
@@ -398,6 +533,13 @@ export class GoalDataManager {
 				setLocalGoals(filteredGoals)
 				success = true
 			}
+		}
+
+		// Clean up goal signature
+		if (success && goalToDelete) {
+			const signature = generateGoalSignature(goalToDelete)
+			removeGoalSignature(signature)
+			console.log(`🗑️ Cleaned up signature for deleted goal: "${goalToDelete.title}"`)
 		}
 
 		// If user is paid, also delete from database in background
