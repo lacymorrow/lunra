@@ -19,6 +19,7 @@ interface SyncStatus {
     dbToLocalSynced: number;
     conflicts: number;
     errors: string[];
+    duplicatesSkipped: number;
   } | null;
 }
 
@@ -133,6 +134,7 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
           dbToLocalSynced: 0,
           conflicts: 0,
           errors: [error instanceof Error ? error.message : String(error)],
+          duplicatesSkipped: 0,
         },
       }));
     }

@@ -1,0 +1,33 @@
+{
+  "name": "lunra - Mindful Goal Achievement",
+  "short_name": "lunra",
+  "description": "A gentle path to meaningful progress. Turn aspirations into realities, one thoughtful step at a time.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8f5",
+  "theme_color": "#f9a8d4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle", "business"],
+  "lang": "en",
+  "scope": "/",
+  "prefer_related_applications": false
+}

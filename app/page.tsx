@@ -26,6 +26,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+// Note: This is a client component so metadata is handled in layout.tsx
+// The landing page content benefits from the root layout metadata
+
 export default function LandingPage() {
   const features = [
     {
