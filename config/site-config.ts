@@ -13,12 +13,12 @@ export const siteConfig = {
 		"goal achievement",
 		"progress tracking",
 		"mindfulness"
-	],
+	] as string[],
 	author: "Cait Russell <cait-russell@outlook.com>",
 	themeColor: "#f9a8d4", // rose-300
 	links: {
 		github: "https://github.com/lacymorrow/lunra",
 	},
-} as const
+}
 
 export type SiteConfig = typeof siteConfig
