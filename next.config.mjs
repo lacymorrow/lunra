@@ -7,13 +7,13 @@ const nextConfig = {
     // ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    unoptimized: process.env.NODE_ENV === 'development', // Fix: Only unoptimized in dev
   },
-		compiler: {
-		// Todo: Remove console logs only in production, excluding error logs
-		// removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
-		},
-		async headers() {
+  compiler: {
+    // Todo: Remove console logs only in production, excluding error logs
+    // removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
+  },
+  async headers() {
     return [
       {
         source: '/(.*)',
@@ -38,6 +38,7 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
           },
+          // TODO: Enable CSP after testing - can break functionality if too strict
           // {
           //   key: 'Content-Security-Policy',
           //   value: [
