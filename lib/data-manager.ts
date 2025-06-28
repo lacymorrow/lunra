@@ -92,10 +92,17 @@ function createLocalGoal(goal: Omit<SavedGoal, "id" | "createdAt">): SavedGoal {
 
 	// Check for duplicate by signature
 	if (signatures.has(signature)) {
-		console.warn(`🚫 Duplicate goal detected, skipping creation: "${goal.title}"`)
+		console.warn(`🚫 Duplicate goal detected, checking for existing goal: "${goal.title}"`)
 		// Return existing goal with same signature
 		const existingGoal = goals.find(g => generateGoalSignature(g) === signature)
-		if (existingGoal) return existingGoal
+		if (existingGoal) {
+			console.log(`✅ Found existing goal with matching signature: "${existingGoal.title}"`)
+			return existingGoal
+		}
+
+		// Handle inconsistent state: signature exists but no corresponding goal found
+		console.warn(`🧹 Orphaned signature detected for "${goal.title}" - cleaning up and proceeding with creation`)
+		removeGoalSignature(signature)
 	}
 
 	// Generate a new ID (simple implementation)
