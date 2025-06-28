@@ -34,6 +34,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+// Note: This is a client component so metadata is handled dynamically via layout.tsx
+// For authenticated pages, we could add dynamic metadata based on user data
+
 interface SavedGoal {
   id: number;
   title: string;
@@ -165,7 +168,7 @@ function DashboardContent() {
 
   const markMilestoneComplete = async (
     goalId: number,
-    milestoneIndex: number
+    milestoneIndex: number,
   ) => {
     try {
       await dataManager.markMilestoneComplete(goalId, milestoneIndex);
@@ -392,7 +395,7 @@ function DashboardContent() {
         (goal) =>
           goal.status === "in-progress" ||
           goal.status === "on-track" ||
-          goal.status === "behind"
+          goal.status === "behind",
       ),
       completed: goals.filter((goal) => goal.status === "completed"),
     };
@@ -424,7 +427,8 @@ function DashboardContent() {
         <div className="flex flex-col items-center">
           <AlertCircle className="h-12 w-12 text-rose-400 mb-4" />
           <p className="text-stone-600 font-light">
-            Error loading goals: {error}
+            Error loading goals:{" "}
+            {error instanceof Error ? error.message : String(error)}
           </p>
         </div>
       </div>
@@ -433,8 +437,11 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      <DashboardPageHeader />
       <div className="container mx-auto px-6 py-8">
+        <DashboardPageHeader
+          title="Dashboard"
+          description="Track your progress and stay motivated on your journey"
+        />
         <DataMigrationBanner />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -493,7 +500,7 @@ function DashboardContent() {
                               </CardTitle>
                               <Badge
                                 className={`${getStatusColor(
-                                  goal.status
+                                  goal.status,
                                 )} text-white border-0 rounded-full`}
                               >
                                 {getStatusText(goal.status)}
@@ -549,9 +556,9 @@ function DashboardContent() {
                                             milestone.status === "completed"
                                               ? "bg-sage-500"
                                               : milestone.status ===
-                                                "in-progress"
-                                              ? "bg-amber-400"
-                                              : "bg-stone-300"
+                                                  "in-progress"
+                                                ? "bg-amber-400"
+                                                : "bg-stone-300"
                                           }`}
                                         >
                                           {milestone.status === "completed" ? (
@@ -572,7 +579,7 @@ function DashboardContent() {
                                           onClick={() =>
                                             markMilestoneComplete(
                                               goal.id,
-                                              index
+                                              index,
                                             )
                                           }
                                           className="text-sage-600 hover:text-sage-700 hover:bg-sage-50 rounded-full"

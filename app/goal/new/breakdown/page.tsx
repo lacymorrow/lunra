@@ -1,122 +1,142 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Target, Calendar, Lightbulb, Heart, Sparkles, AlertCircle, Save } from "lucide-react"
-import Link from "next/link"
-import { useChat } from "ai/react"
-import { useRouter } from "next/navigation"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { useToast } from "@/hooks/use-toast"
-import { useGoalData, type SavedGoal as GoalDataContextSavedGoal } from "@/contexts/goal-data-context"
+import { useState, useEffect, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle,
+  Target,
+  Calendar,
+  Lightbulb,
+  Heart,
+  Sparkles,
+  AlertCircle,
+  Save,
+} from "lucide-react";
+import Link from "next/link";
+import { useChat } from "ai/react";
+import { useRouter } from "next/navigation";
+import { DashboardHeader } from "@/components/dashboard-header";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
+import { useGoalData } from "@/contexts/goal-data-context";
+import type { SavedGoal } from "@/types";
 
 interface Goal {
-  title: string
-  description: string
-  timeline: string
-}
-
-interface SavedGoal {
-  id: number
-  title: string
-  description: string
-  timeline: string
-  progress: number
-  status: string
-  dueDate: string
-  subGoals: string[]
-  completedSubGoals: number
-  createdAt: string
-  milestones: Array<{
-    week: number
-    task: string
-    status: string
-    progress: number
-  }>
+  title: string;
+  description: string;
+  timeline: string;
 }
 
 export default function GoalBreakdown() {
-  const router = useRouter()
-  const [goal, setGoal] = useState<Goal | null>(null)
-  const [subGoals, setSubGoals] = useState<string[]>([])
-  const [hasInitialized, setHasInitialized] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [questionCount, setQuestionCount] = useState(0)
-  const [isSaving, setIsSaving] = useState(false)
-  const [hasSaved, setHasSaved] = useState(false)
+  const router = useRouter();
+  const [goal, setGoal] = useState<Goal | null>(null);
+  const [subGoals, setSubGoals] = useState<string[]>([]);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false);
 
   const [allGeneratedGoals, setAllGeneratedGoals] = useState<
     Array<{
-      title: string
-      description: string
-      timeline: string
-      subGoals: string[]
+      title: string;
+      description: string;
+      timeline: string;
+      subGoals: string[];
       milestones: Array<{
-        week: number
-        task: string
-        status: string
-        progress: number
-      }>
+        week: number;
+        task: string;
+        status: string;
+        progress: number;
+      }>;
     }>
-  >([])
-  const [isCreatingMultiple, setIsCreatingMultiple] = useState(false)
-  const [parentGoalTitle, setParentGoalTitle] = useState("")
+  >([]);
+  const [isCreatingMultiple, setIsCreatingMultiple] = useState(false);
+  const [parentGoalTitle, setParentGoalTitle] = useState("");
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const lastSavedGoalIdRef = useRef<number | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastSavedGoalIdRef = useRef<number | null>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  };
 
-  const { toast } = useToast()
+  const { toast } = useToast();
 
-  const { dataManager, refreshGoals } = useGoalData()
+  const { dataManager, refreshGoals } = useGoalData();
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    append,
+  } = useChat({
     api: "/api/goal-breakdown",
     onFinish: (message) => {
-      console.log("AI Response:", message.content)
-      setError(null)
+      console.log("AI Response:", message.content);
+      setError(null);
 
-      if (message.role === "assistant" && !message.content.includes("SUB_GOALS:")) {
-        setQuestionCount((prev) => prev + 1)
+      if (
+        message.role === "assistant" &&
+        !message.content.includes("SUB_GOALS:")
+      ) {
+        setQuestionCount((prev) => prev + 1);
       }
 
       if (message.content.includes("SUB_GOALS:")) {
-        const goalSection = message.content.split("SUB_GOALS:")[1]
+        const goalSection = message.content.split("SUB_GOALS:")[1];
         const goals = goalSection
           .split("\n")
           .filter((g) => g.trim() && g.match(/^\d+\./))
-          .map((g) => g.replace(/^\d+\.\s*/, "").trim())
-        console.log("Extracted sub-goals:", goals)
-        setSubGoals(goals)
+          .map((g) => g.replace(/^\d+\.\s*/, "").trim());
+        console.log("Extracted sub-goals:", goals);
+        setSubGoals(goals);
       }
 
       if (message.content.includes("MULTIPLE_TIMELINES:")) {
-        const timelinesSection = message.content.split("MULTIPLE_TIMELINES:")[1]
-        const timelineBlocks = timelinesSection.split(/TIMELINE_\d+:/).filter((block) => block.trim())
+        const timelinesSection = message.content.split(
+          "MULTIPLE_TIMELINES:"
+        )[1];
+        const timelineBlocks = timelinesSection
+          .split(/TIMELINE_\d+:/)
+          .filter((block) => block.trim());
 
         const parsedGoals = timelineBlocks.map((block, index) => {
-          const lines = block.split("\n").filter((line) => line.trim())
-          const titleLine = lines.find((line) => line.includes("TITLE:"))
-          const goalTitle = titleLine ? titleLine.replace("TITLE:", "").trim() : `Timeline ${index + 1}`
+          const lines = block.split("\n").filter((line) => line.trim());
+          const titleLine = lines.find((line) => line.includes("TITLE:"));
+          const goalTitle = titleLine
+            ? titleLine.replace("TITLE:", "").trim()
+            : `Timeline ${index + 1}`;
 
-          const goalLines = lines.filter((line) => line.match(/^\d+\./))
-          const goals = goalLines.map((g) => g.replace(/^\d+\.\s*/, "").trim())
+          const goalLines = lines.filter((line) => line.match(/^\d+\./));
+          const goals = goalLines.map((g) => g.replace(/^\d+\.\s*/, "").trim());
 
           const milestones = goals.map((goalText, idx) => {
-            let week = idx + 1
-            let task = goalText
+            let week = idx + 1;
+            let task = goalText;
 
-            const weekMatch = goalText.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
+            const weekMatch = goalText.match(/^\[Week\s+(\d+)\]\s+(.+)$/i);
             if (weekMatch) {
-              week = Number.parseInt(weekMatch[1], 10)
-              task = weekMatch[2].trim()
+              week = Number.parseInt(weekMatch[1], 10);
+              task = weekMatch[2].trim();
             }
 
             return {
@@ -124,8 +144,8 @@ export default function GoalBreakdown() {
               task: task,
               status: idx === 0 ? "in-progress" : "pending",
               progress: idx === 0 ? 10 : 0,
-            }
-          })
+            };
+          });
 
           return {
             title: goalTitle,
@@ -133,61 +153,68 @@ export default function GoalBreakdown() {
             timeline: goal?.timeline || "",
             subGoals: goals,
             milestones: milestones,
-          }
-        })
+          };
+        });
 
-        setAllGeneratedGoals(parsedGoals)
-        setIsCreatingMultiple(true)
-        setParentGoalTitle(goal?.title || "Multi-timeline goal")
+        setAllGeneratedGoals(parsedGoals);
+        setIsCreatingMultiple(true);
+        setParentGoalTitle(goal?.title || "Multi-timeline goal");
       }
     },
     onError: (error) => {
-      console.error("Chat error details:", error)
-      setError(`AI service error: ${error.message || "Unknown error occurred"}`)
+      console.error("Chat error details:", error);
+      setError(
+        `AI service error: ${error.message || "Unknown error occurred"}`
+      );
     },
-  })
+  });
 
   const saveGoalToApp = async (): Promise<number | null> => {
-    if (!goal || subGoals.length === 0) return null
+    if (!goal || subGoals.length === 0) return null;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       toast({
         title: "Saving your goal...",
         description: "Creating your personalized action plan",
-      })
+      });
 
       const milestones = subGoals.map((subGoal, index) => {
-        let week = index + 1
-        let task = subGoal
-        const weekMatch = subGoal.match(/^\[Week\s+(\d+)\]\s+(.+)$/i)
+        let week = index + 1;
+        let task = subGoal;
+        const weekMatch = subGoal.match(/^\[Week\s+(\d+)\]\s+(.+)$/i);
         if (weekMatch) {
-          week = Number.parseInt(weekMatch[1], 10)
-          task = weekMatch[2].trim()
+          week = Number.parseInt(weekMatch[1], 10);
+          task = weekMatch[2].trim();
         }
-        let maxWeeks = 4
+        let maxWeeks = 4;
         if (goal.timeline) {
-          const monthsMatch = goal.timeline.match(/(\d+)\s*month/i)
-          const weeksMatch = goal.timeline.match(/(\d+)\s*week/i)
-          if (monthsMatch) maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4
-          else if (weeksMatch) maxWeeks = Number.parseInt(weeksMatch[1], 10)
+          const monthsMatch = goal.timeline.match(/(\d+)\s*month/i);
+          const weeksMatch = goal.timeline.match(/(\d+)\s*week/i);
+          if (monthsMatch) maxWeeks = Number.parseInt(monthsMatch[1], 10) * 4;
+          else if (weeksMatch) maxWeeks = Number.parseInt(weeksMatch[1], 10);
         }
-        week = Math.min(week, maxWeeks)
-        return { week, task, status: index === 0 ? "in-progress" : "pending", progress: index === 0 ? 10 : 0 }
-      })
+        week = Math.min(week, maxWeeks);
+        return {
+          week,
+          task,
+          status: index === 0 ? "in-progress" : "pending",
+          progress: index === 0 ? 10 : 0,
+        };
+      });
 
-      const dueDate = new Date()
+      const dueDate = new Date();
       if (goal.timeline.toLowerCase().includes("month")) {
-        const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
-        dueDate.setMonth(dueDate.getMonth() + months)
+        const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6");
+        dueDate.setMonth(dueDate.getMonth() + months);
       } else if (goal.timeline.toLowerCase().includes("year")) {
-        const years = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1")
-        dueDate.setFullYear(dueDate.getFullYear() + years)
+        const years = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "1");
+        dueDate.setFullYear(dueDate.getFullYear() + years);
       } else {
-        dueDate.setMonth(dueDate.getMonth() + 6)
+        dueDate.setMonth(dueDate.getMonth() + 6);
       }
 
-      const newGoalToSave: Omit<GoalDataContextSavedGoal, "id" | "createdAt"> = {
+      const newGoalToSave: Omit<SavedGoal, "id" | "createdAt"> = {
         title: goal.title,
         description: goal.description || "",
         timeline: goal.timeline || "",
@@ -197,53 +224,56 @@ export default function GoalBreakdown() {
         subGoals: subGoals,
         completedSubGoals: 0,
         milestones: milestones,
-      }
+      };
 
-      const savedGoal = await dataManager.createGoal(newGoalToSave)
-      localStorage.removeItem("newGoal")
-      console.log("Goal saved successfully:", savedGoal)
-      setHasSaved(true)
-      lastSavedGoalIdRef.current = savedGoal.id
+      const savedGoal = await dataManager.createGoal(newGoalToSave);
+      localStorage.removeItem("newGoal");
+      console.log("Goal saved successfully:", savedGoal);
+      setHasSaved(true);
+      lastSavedGoalIdRef.current = savedGoal.id;
 
       toast({
         title: "Goal saved successfully! 🎉",
-        description: "Your timeline has been created and saved to your dashboard",
-      })
+        description:
+          "Your timeline has been created and saved to your dashboard",
+      });
 
-      await refreshGoals()
-      setIsSaving(false)
-      return savedGoal.id
+      await refreshGoals();
+      setIsSaving(false);
+      return savedGoal.id;
     } catch (error) {
-      console.error("Error saving goal:", error)
-      setError("Failed to save goal. Please try again.")
+      console.error("Error saving goal:", error);
+      setError("Failed to save goal. Please try again.");
       toast({
         title: "Error saving goal",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
-      })
-      setIsSaving(false)
-      return null
+      });
+      setIsSaving(false);
+      return null;
     }
-  }
+  };
 
   const saveMultipleGoalsToApp = async (): Promise<number | null> => {
-    if (!goal || allGeneratedGoals.length === 0) return null
+    if (!goal || allGeneratedGoals.length === 0) return null;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       toast({
         title: "Saving your timelines...",
         description: `Creating ${allGeneratedGoals.length} personalized timelines`,
-      })
+      });
 
-      const newGoalsToSave: Array<Omit<GoalDataContextSavedGoal, "id" | "createdAt">> = allGeneratedGoals.map(
-        (timeline) => {
-          const dueDate = new Date()
+      const newGoalsToSave: Array<Omit<SavedGoal, "id" | "createdAt">> =
+        allGeneratedGoals.map((timeline) => {
+          const dueDate = new Date();
           if (goal.timeline.toLowerCase().includes("month")) {
-            const months = Number.parseInt(goal.timeline.match(/\d+/)?.[0] || "6")
-            dueDate.setMonth(dueDate.getMonth() + months)
+            const months = Number.parseInt(
+              goal.timeline.match(/\d+/)?.[0] || "6"
+            );
+            dueDate.setMonth(dueDate.getMonth() + months);
           } else {
-            dueDate.setMonth(dueDate.getMonth() + 6)
+            dueDate.setMonth(dueDate.getMonth() + 6);
           }
           return {
             title: timeline.title,
@@ -255,138 +285,149 @@ export default function GoalBreakdown() {
             subGoals: timeline.subGoals,
             completedSubGoals: 0,
             milestones: timeline.milestones,
-          }
-        },
-      )
+          };
+        });
 
-      const savedGoals = await Promise.all(newGoalsToSave.map((goalData) => dataManager.createGoal(goalData)))
-      localStorage.removeItem("newGoal")
-      console.log("Multiple goals saved successfully:", savedGoals)
-      setHasSaved(true)
+      const savedGoals = await Promise.all(
+        newGoalsToSave.map((goalData) => dataManager.createGoal(goalData))
+      );
+      localStorage.removeItem("newGoal");
+      console.log("Multiple goals saved successfully:", savedGoals);
+      setHasSaved(true);
       if (savedGoals.length > 0) {
-        lastSavedGoalIdRef.current = savedGoals[0].id
+        lastSavedGoalIdRef.current = savedGoals[0].id;
       }
 
       toast({
         title: "Timelines created successfully! 🎉",
         description: `${savedGoals.length} timelines have been saved to your dashboard`,
-      })
+      });
 
-      await refreshGoals()
-      setIsSaving(false)
-      return savedGoals.length > 0 ? savedGoals[0].id : null
+      await refreshGoals();
+      setIsSaving(false);
+      return savedGoals.length > 0 ? savedGoals[0].id : null;
     } catch (error) {
-      console.error("Error saving multiple goals:", error)
-      setError("Failed to save goals. Please try again.")
+      console.error("Error saving multiple goals:", error);
+      setError("Failed to save goals. Please try again.");
       toast({
         title: "Error saving timelines",
         description: "Something went wrong. Please try again.",
         variant: "destructive",
-      })
-      setIsSaving(false)
-      return null
+      });
+      setIsSaving(false);
+      return null;
     }
-  }
+  };
 
   const goToTimeline = () => {
-    if (isSaving) return
+    if (isSaving) return;
 
     if (hasSaved && lastSavedGoalIdRef.current) {
       toast({
         title: "Redirecting to timeline...",
         description: "Taking you to your personalized timeline view",
-      })
-      router.push(`/timeline?goalId=${lastSavedGoalIdRef.current}`)
+      });
+      router.push(`/timeline?goalId=${lastSavedGoalIdRef.current}`);
     } else {
-      const saveFunction = isCreatingMultiple ? saveMultipleGoalsToApp : saveGoalToApp
+      const saveFunction = isCreatingMultiple
+        ? saveMultipleGoalsToApp
+        : saveGoalToApp;
       saveFunction().then((newlySavedGoalId) => {
         if (newlySavedGoalId) {
           setTimeout(() => {
             toast({
               title: "Redirecting to timeline...",
               description: "Taking you to your personalized timeline view",
-            })
-            router.push(`/timeline?goalId=${newlySavedGoalId}`)
-          }, 500)
+            });
+            router.push(`/timeline?goalId=${newlySavedGoalId}`);
+          }, 500);
         } else if (!isSaving) {
           toast({
             title: "Could not save goal",
             description: "Please try again or check the console for errors.",
             variant: "destructive",
-          })
+          });
         }
-      })
+      });
     }
-  }
+  };
 
   const goToDashboard = () => {
-    if (isSaving) return
+    if (isSaving) return;
 
     if (hasSaved && lastSavedGoalIdRef.current) {
       toast({
         title: "Redirecting to dashboard...",
         description: "Taking you to your goal dashboard",
-      })
-      router.push("/dashboard")
+      });
+      router.push("/dashboard");
     } else {
-      const saveFunction = isCreatingMultiple ? saveMultipleGoalsToApp : saveGoalToApp
+      const saveFunction = isCreatingMultiple
+        ? saveMultipleGoalsToApp
+        : saveGoalToApp;
       saveFunction().then((newlySavedGoalId) => {
         if (newlySavedGoalId) {
           setTimeout(() => {
             toast({
               title: "Redirecting to dashboard...",
               description: "Taking you to your goal dashboard",
-            })
-            router.push("/dashboard")
-          }, 500)
+            });
+            router.push("/dashboard");
+          }, 500);
         } else if (!isSaving) {
           toast({
             title: "Could not save goal",
             description: "Please try again or check the console for errors.",
             variant: "destructive",
-          })
+          });
         }
-      })
+      });
     }
-  }
+  };
 
   useEffect(() => {
-    const storedGoal = localStorage.getItem("newGoal")
+    const storedGoal = localStorage.getItem("newGoal");
     if (storedGoal && !hasInitialized) {
       try {
-        const parsedGoal = JSON.parse(storedGoal)
-        setGoal(parsedGoal)
+        const parsedGoal = JSON.parse(storedGoal);
+        setGoal(parsedGoal);
 
-        const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". ${
-          parsedGoal.description ? `Here's more context: ${parsedGoal.description}` : ""
+        const initialPrompt = `I want to achieve this goal: "${
+          parsedGoal.title
+        }". ${
+          parsedGoal.description
+            ? `Here's more context: ${parsedGoal.description}`
+            : ""
         } ${
-          parsedGoal.timeline ? `I want to achieve this in: ${parsedGoal.timeline}` : ""
-        }. Please ask me ONE specific, personalized question to help break this down into concrete, manageable sub-goals. Start with understanding my experience level or current situation with this type of goal.`
+          parsedGoal.timeline
+            ? `I want to achieve this in: ${parsedGoal.timeline}`
+            : ""
+        }. Please ask me ONE specific, personalized question to help break this down into concrete, manageable sub-goals. Start with understanding my experience level or current situation with this type of goal.`;
 
-        console.log("Sending initial prompt:", initialPrompt)
+        console.log("Sending initial prompt:", initialPrompt);
 
         setTimeout(() => {
           append({
             role: "user",
             content: initialPrompt,
-          })
-        }, 1000)
+          });
+        }, 1000);
 
-        setHasInitialized(true)
+        setHasInitialized(true);
       } catch (error) {
-        console.error("Error parsing stored goal:", error)
-        setError("Failed to load your goal. Please try creating a new goal.")
+        console.error("Error parsing stored goal:", error);
+        setError("Failed to load your goal. Please try creating a new goal.");
       }
     }
-  }, [append, hasInitialized])
+  }, [append, hasInitialized]);
 
   useEffect(() => {
-    console.log("Messages updated:", messages)
-  }, [messages])
+    console.log("Messages updated:", messages);
+  }, [messages]);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, isLoading])
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   if (!goal) {
     return (
@@ -396,14 +437,18 @@ export default function GoalBreakdown() {
             <div className="w-16 h-16 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
               <Heart className="h-8 w-8 text-white" />
             </div>
-            <p className="text-stone-600 mb-4 font-light">Loading your goal...</p>
+            <p className="text-stone-600 mb-4 font-light">
+              Loading your goal...
+            </p>
             <Link href="/create-goal">
-              <Button className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">Go back to create goal</Button>
+              <Button className="rounded-full bg-rose-400 hover:bg-rose-500 text-white">
+                Go back to create goal
+              </Button>
             </Link>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -425,9 +470,12 @@ export default function GoalBreakdown() {
                   AI Goal Coach
                 </CardTitle>
                 <CardDescription className="text-stone-600 font-light">
-                  Answer each question thoughtfully to get a personalized breakdown of your goal.
+                  Answer each question thoughtfully to get a personalized
+                  breakdown of your goal.
                   {questionCount > 0 && subGoals.length === 0 && (
-                    <span className="block mt-1 text-rose-500">Question {questionCount} of 3-5</span>
+                    <span className="block mt-1 text-rose-500">
+                      Question {questionCount} of 3-5
+                    </span>
                   )}
                 </CardDescription>
               </CardHeader>
@@ -438,25 +486,28 @@ export default function GoalBreakdown() {
                     <div className="flex items-start">
                       <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-red-800 font-medium">Something went wrong</p>
+                        <p className="text-red-800 font-medium">
+                          Something went wrong
+                        </p>
                         <p className="text-red-600 text-sm mt-1">{error}</p>
                         <Button
                           onClick={() => {
-                            setError(null)
-                            setHasInitialized(false)
-                            setQuestionCount(0)
+                            setError(null);
+                            setHasInitialized(false);
+                            setQuestionCount(0);
                             setTimeout(() => {
-                              const storedGoal = localStorage.getItem("newGoal")
+                              const storedGoal =
+                                localStorage.getItem("newGoal");
                               if (storedGoal) {
-                                const parsedGoal = JSON.parse(storedGoal)
-                                const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". Please ask me ONE specific question to help break this down.`
+                                const parsedGoal = JSON.parse(storedGoal);
+                                const initialPrompt = `I want to achieve this goal: "${parsedGoal.title}". Please ask me ONE specific question to help break this down.`;
                                 append({
                                   role: "user",
                                   content: initialPrompt,
-                                })
-                                setHasInitialized(true)
+                                });
+                                setHasInitialized(true);
                               }
-                            }, 500)
+                            }, 500);
                           }}
                           className="mt-3 text-sm bg-red-100 hover:bg-red-200 text-red-800"
                           size="sm"
@@ -473,7 +524,9 @@ export default function GoalBreakdown() {
                     <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-amber-300 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Sparkles className="h-6 w-6 text-white" />
                     </div>
-                    <p className="text-stone-600 font-light">Starting your AI coaching session...</p>
+                    <p className="text-stone-600 font-light">
+                      Starting your AI coaching session...
+                    </p>
                   </div>
                 )}
 
@@ -496,7 +549,9 @@ export default function GoalBreakdown() {
                         <p className="text-sm font-medium mb-2 text-stone-800">
                           {message.role === "user" ? "You" : "AI Coach"}
                         </p>
-                        <p className="text-stone-700 whitespace-pre-wrap font-light">{message.content}</p>
+                        <p className="text-stone-700 whitespace-pre-wrap font-light">
+                          {message.content}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -509,10 +564,14 @@ export default function GoalBreakdown() {
                         <Sparkles className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium mb-2 text-stone-800">AI Coach</p>
+                        <p className="text-sm font-medium mb-2 text-stone-800">
+                          AI Coach
+                        </p>
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-rose-400 mr-2"></div>
-                          <p className="text-stone-600 font-light">Thinking thoughtfully...</p>
+                          <p className="text-stone-600 font-light">
+                            Thinking thoughtfully...
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -539,7 +598,9 @@ export default function GoalBreakdown() {
                           <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
                             {index + 1}
                           </div>
-                          <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
+                          <p className="flex-1 text-stone-700 font-light">
+                            {subGoal}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -548,7 +609,9 @@ export default function GoalBreakdown() {
                       <div className="mt-4 p-3 bg-sage-50 border border-sage-200 rounded-xl">
                         <div className="flex items-center">
                           <CheckCircle className="h-4 w-4 text-sage-600 mr-2" />
-                          <span className="text-sage-800 text-sm font-medium">Goal saved successfully!</span>
+                          <span className="text-sage-800 text-sm font-medium">
+                            Goal saved successfully!
+                          </span>
                         </div>
                       </div>
                     )}
@@ -601,13 +664,19 @@ export default function GoalBreakdown() {
                         Your Multiple Timelines
                       </CardTitle>
                       <CardDescription className="text-stone-600 font-light pt-2">
-                        {parentGoalTitle} broken down into {allGeneratedGoals.length} focused timelines
+                        {parentGoalTitle} broken down into{" "}
+                        {allGeneratedGoals.length} focused timelines
                       </CardDescription>
                     </CardHeader>
                     <div className="space-y-6">
                       {allGeneratedGoals.map((timeline, timelineIndex) => (
-                        <div key={timelineIndex} className="border border-stone-200 rounded-xl p-6 bg-white">
-                          <h3 className="font-serif text-xl text-stone-800 mb-4">{timeline.title}</h3>
+                        <div
+                          key={timelineIndex}
+                          className="border border-stone-200 rounded-xl p-6 bg-white"
+                        >
+                          <h3 className="font-serif text-xl text-stone-800 mb-4">
+                            {timeline.title}
+                          </h3>
                           <div className="space-y-3">
                             {timeline.subGoals.map((subGoal, index) => (
                               <div
@@ -617,7 +686,9 @@ export default function GoalBreakdown() {
                                 <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
                                   {index + 1}
                                 </div>
-                                <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
+                                <p className="flex-1 text-stone-700 font-light">
+                                  {subGoal}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -672,7 +743,11 @@ export default function GoalBreakdown() {
               <div className="p-6 pt-0 flex-shrink-0">
                 <Collapsible defaultOpen={false}>
                   <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-800">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-gray-600 hover:text-gray-800"
+                    >
                       Show Debug Info
                     </Button>
                   </CollapsibleTrigger>
@@ -693,15 +768,26 @@ export default function GoalBreakdown() {
           <div className="lg:col-span-1 space-y-6">
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>
-                <CardTitle className="text-xl font-serif text-stone-800">Your Goal</CardTitle>
+                <CardTitle className="text-xl font-serif text-stone-800">
+                  Your Goal
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-serif text-xl text-stone-800 mb-2">{goal.title}</h3>
-                    {goal.description && <p className="text-stone-600 text-sm mb-3 font-light">{goal.description}</p>}
+                    <h3 className="font-serif text-xl text-stone-800 mb-2">
+                      {goal.title}
+                    </h3>
+                    {goal.description && (
+                      <p className="text-stone-600 text-sm mb-3 font-light">
+                        {goal.description}
+                      </p>
+                    )}
                     {goal.timeline && (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 rounded-full">
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 border-amber-200 rounded-full"
+                      >
                         <Calendar className="h-3 w-3 mr-1" />
                         {goal.timeline}
                       </Badge>
@@ -713,13 +799,17 @@ export default function GoalBreakdown() {
 
             <Card className="border-0 rounded-3xl shadow-md">
               <CardHeader>
-                <CardTitle className="text-xl font-serif text-stone-800">Breakdown Process</CardTitle>
+                <CardTitle className="text-xl font-serif text-stone-800">
+                  Breakdown Process
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-sage-500 mr-3" />
-                    <span className="text-sm text-stone-700 font-light">Goal defined</span>
+                    <span className="text-sm text-stone-700 font-light">
+                      Goal defined
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <div
@@ -727,7 +817,9 @@ export default function GoalBreakdown() {
                         questionCount > 0 ? "bg-sage-500" : "bg-stone-300"
                       }`}
                     >
-                      {questionCount > 0 && <CheckCircle className="h-3 w-3 text-white" />}
+                      {questionCount > 0 && (
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      )}
                     </div>
                     <span className="text-sm text-stone-700 font-light">
                       AI questions answered ({questionCount}/3-5)
@@ -736,10 +828,13 @@ export default function GoalBreakdown() {
                   <div className="flex items-center">
                     <div
                       className={`h-5 w-5 rounded-full mr-3 flex items-center justify-center ${
-                        subGoals.length > 0 || allGeneratedGoals.length > 0 ? "bg-sage-500" : "bg-stone-300"
+                        subGoals.length > 0 || allGeneratedGoals.length > 0
+                          ? "bg-sage-500"
+                          : "bg-stone-300"
                       }`}
                     >
-                      {(subGoals.length > 0 || allGeneratedGoals.length > 0) && (
+                      {(subGoals.length > 0 ||
+                        allGeneratedGoals.length > 0) && (
                         <CheckCircle className="h-3 w-3 text-white" />
                       )}
                     </div>
@@ -748,8 +843,8 @@ export default function GoalBreakdown() {
                       {subGoals.length > 0
                         ? `(${subGoals.length})`
                         : allGeneratedGoals.length > 0
-                          ? `(${allGeneratedGoals.length} timelines)`
-                          : ""}
+                        ? `(${allGeneratedGoals.length} timelines)`
+                        : ""}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -758,9 +853,13 @@ export default function GoalBreakdown() {
                         hasSaved ? "bg-sage-500" : "bg-stone-300"
                       }`}
                     >
-                      {hasSaved && <CheckCircle className="h-3 w-3 text-white" />}
+                      {hasSaved && (
+                        <CheckCircle className="h-3 w-3 text-white" />
+                      )}
                     </div>
-                    <span className="text-sm text-stone-700 font-light">Goal saved</span>
+                    <span className="text-sm text-stone-700 font-light">
+                      Goal saved
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -773,15 +872,22 @@ export default function GoalBreakdown() {
               </div>
               <div className="space-y-3 text-sm font-light text-white/90">
                 <p>
-                  💡 Be specific in your answers - the more detail you share, the better your personalized plan will be.
+                  💡 Be specific in your answers - the more detail you share,
+                  the better your personalized plan will be.
                 </p>
-                <p>🎯 Think about your current situation, not just your ideal scenario.</p>
-                <p>⏰ Consider realistic timeframes based on your other commitments.</p>
+                <p>
+                  🎯 Think about your current situation, not just your ideal
+                  scenario.
+                </p>
+                <p>
+                  ⏰ Consider realistic timeframes based on your other
+                  commitments.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

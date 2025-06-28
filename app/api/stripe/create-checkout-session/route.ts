@@ -2,6 +2,7 @@ import { createUserProfile, getUserProfile, updateUserProfile } from '@/lib/serv
 import { PLANS, isValidPlanId, stripe } from '@/lib/stripe'
 import { createClientServerWithAuth } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
 	console.log('🚀 [create-checkout-session] Starting checkout session creation')
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
 
 		// Create checkout session
 		console.log('🛒 [create-checkout-session] Creating Stripe checkout session...')
-		const sessionConfig = {
+		const sessionConfig: Stripe.Checkout.SessionCreateParams = {
 			customer: stripeCustomerId,
 			payment_method_types: ['card'],
 			line_items: [
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
 					quantity: 1,
 				},
 			],
-			mode: 'subscription' as const,
+			mode: 'subscription',
 			success_url: `${request.nextUrl.origin}/api/stripe/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
 			cancel_url: `${request.nextUrl.origin}/dashboard?canceled=true`,
 			metadata: {
