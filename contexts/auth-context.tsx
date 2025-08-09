@@ -10,7 +10,7 @@ import type {
   DatabaseUserProfile,
 } from "@/types/database";
 import type { Session, User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const refreshProfile = useCallback(async () => {
     if (!user?.id) {
@@ -95,8 +96,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserSubscription(null);
           router.push("/auth/signin");
         } else if (event === "SIGNED_IN") {
-          // Handle sign in (e.g., redirect to dashboard)
-          router.push("/dashboard");
+          // Only redirect to dashboard when coming from auth or landing pages
+          const authPages = [
+            "/auth/signin",
+            "/auth/signup",
+            "/auth/forgot-password",
+            "/auth/update-password",
+            "/",
+          ];
+          if (authPages.includes(pathname)) {
+            router.push("/dashboard");
+          }
         }
       }
     );
@@ -119,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, refreshProfile]);
+  }, [router, pathname, refreshProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({
