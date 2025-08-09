@@ -6,7 +6,7 @@ interface DashboardHeaderProps {
   title: string
   description?: string
   showBack?: boolean
-  backHref?: string
+  backHref?: string | { pathname: string }
   backText?: string
 }
 
@@ -40,7 +40,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </Link>
 
             {/* Back Navigation */}
-            {showBack && (
+            {showBack && backHref && (
               <div className="flex items-center space-x-2 text-stone-500">
                 <span>/</span>
                 <Link

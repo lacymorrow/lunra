@@ -424,7 +424,7 @@ function DashboardContent() {
         <div className="flex flex-col items-center">
           <AlertCircle className="h-12 w-12 text-rose-400 mb-4" />
           <p className="text-stone-600 font-light">
-            Error loading goals: {error}
+            Error loading goals: {error instanceof Error ? error.message : String(error)}
           </p>
         </div>
       </div>
@@ -433,7 +433,10 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#faf8f5" }}>
-      <DashboardPageHeader />
+      <DashboardPageHeader
+        title="Dashboard"
+        description="Track your goals, milestones, and progress"
+      />
       <div className="container mx-auto px-6 py-8">
         <DataMigrationBanner />
 

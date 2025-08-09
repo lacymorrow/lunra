@@ -61,7 +61,9 @@ export async function GET(request: NextRequest) {
                     },
                     product_data: {
                         name: 'Bloom Plan',
-                        description: 'Unlimited goals and advanced AI mentorship',
+                        metadata: {
+                            description: 'Unlimited goals and advanced AI mentorship',
+                        },
                     },
                     active: true,
                 })

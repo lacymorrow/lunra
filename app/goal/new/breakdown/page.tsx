@@ -12,7 +12,8 @@ import { useRouter } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
-import { useGoalData, type SavedGoal as GoalDataContextSavedGoal } from "@/contexts/goal-data-context"
+import { useGoalData } from "@/contexts/goal-data-context"
+import type { SavedGoal as GoalDataContextSavedGoal } from "@/types"
 
 interface Goal {
   title: string

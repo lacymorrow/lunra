@@ -126,23 +126,23 @@ export async function POST(request: NextRequest) {
 
 		// Create checkout session
 		console.log('🛒 [create-checkout-session] Creating Stripe checkout session...')
-		const sessionConfig = {
-			customer: stripeCustomerId,
-			payment_method_types: ['card'],
-			line_items: [
-				{
-					price: plan.priceId,
-					quantity: 1,
-				},
-			],
-			mode: 'subscription' as const,
-			success_url: `${request.nextUrl.origin}/api/stripe/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
-			cancel_url: `${request.nextUrl.origin}/dashboard?canceled=true`,
-			metadata: {
-				userId: user.id,
-				planId: planId,
-			},
-		}
+        const sessionConfig = {
+            customer: stripeCustomerId,
+            automatic_payment_methods: { enabled: true },
+            line_items: [
+                {
+                    price: plan.priceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription' as const,
+            success_url: `${request.nextUrl.origin}/api/stripe/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${request.nextUrl.origin}/dashboard?canceled=true`,
+            metadata: {
+                userId: user.id,
+                planId: planId,
+            },
+        }
 
 		console.log('🛒 [create-checkout-session] Session config:', {
 			customer: sessionConfig.customer,
