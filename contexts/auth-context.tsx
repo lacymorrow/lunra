@@ -96,15 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserSubscription(null);
           router.push("/auth/signin");
         } else if (event === "SIGNED_IN") {
-          // Only redirect to dashboard when coming from auth or landing pages
-          const authPages = [
-            "/auth/signin",
-            "/auth/signup",
-            "/auth/forgot-password",
-            "/auth/update-password",
-            "/",
-          ];
-          if (authPages.includes(pathname)) {
+          // Only redirect to dashboard when coming from auth pages or landing
+          const shouldRedirectToDashboard =
+            pathname === "/" || (pathname && pathname.startsWith("/auth"));
+
+          if (shouldRedirectToDashboard) {
             router.push("/dashboard");
           }
         }
@@ -129,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, pathname, refreshProfile]);
+  }, [router, refreshProfile]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase().auth.signInWithPassword({
