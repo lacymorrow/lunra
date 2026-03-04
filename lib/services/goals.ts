@@ -4,11 +4,18 @@ import type { SavedGoal } from "@/types"
 import { convertLocalStorageToDatabase } from "@/types/database"
 
 export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
-  // Use the custom function we created in our migration to get goals with stats
-  const { data, error } = await supabase().rpc("get_user_goals_with_stats", { user_uuid: userId })
+  // Fetch goals with their milestones in a single query using Supabase's
+  // foreign table join, instead of the RPC function which only returned
+  // stats (total/completed counts) but not actual milestone objects.
+  const { data, error } = await supabase()
+    .from("goals")
+    .select("*, milestones(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("week", { foreignTable: "milestones", ascending: true })
 
   if (error) {
-    console.error("Error fetching goals:", error)
+    console.error("Error fetching goals with milestones:", error)
     throw error
   }
 
