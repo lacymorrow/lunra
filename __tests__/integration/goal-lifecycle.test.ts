@@ -230,7 +230,7 @@ describe("Goal Lifecycle Integration", () => {
 
 		// Verify localStorage is clean
 		const raw = localStorage.getItem("savedGoals")
-		expect(JSON.parse(raw!)).toEqual([])
+		expect(raw).toBe("[]")
 	})
 
 	it("localStorage persistence across manager instances", async () => {

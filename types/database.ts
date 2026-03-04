@@ -1,3 +1,5 @@
+import type { SavedGoal } from "@/types"
+
 // Database types that match our Supabase schema
 export interface DatabaseGoal {
   id: string
@@ -75,7 +77,7 @@ export function convertLocalStorageToDatabase(
   }
 }
 
-export function convertDatabaseToLocalStorage(dbGoal: DatabaseGoalWithMilestones): any {
+export function convertDatabaseToLocalStorage(dbGoal: DatabaseGoalWithMilestones): SavedGoal {
   return {
     // Generate a stable numeric ID from the UUID for localStorage compatibility,
     // but also preserve the real UUID in dbId for reliable sync matching.

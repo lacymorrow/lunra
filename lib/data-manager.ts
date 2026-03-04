@@ -406,6 +406,28 @@ export class GoalDataManager {
 	}
 
 	// ----------------------------------------------------------------
+	// Mutex helper — centralizes background DB write guard logic.
+	// ----------------------------------------------------------------
+
+	private async _withDbWriteMutex(dbOperation: () => Promise<void>): Promise<void> {
+		if (!this.shouldSync || this._syncing) {
+			if (this._syncing) {
+				console.log("DB write skipped, sync in progress.")
+			}
+			return
+		}
+
+		this._syncing = true
+		try {
+			await dbOperation()
+		} catch (error) {
+			console.error(`⚠️ Background DB operation failed:`, error)
+		} finally {
+			this._syncing = false
+		}
+	}
+
+	// ----------------------------------------------------------------
 	// Core CRUD — all operations use localStorage as primary storage.
 	// DB writes use dbId (UUID) instead of casting numeric IDs.
 	// ----------------------------------------------------------------
@@ -428,23 +450,15 @@ export class GoalDataManager {
 		const localGoal = createLocalGoal(goalData)
 
 		// If user is paid, also sync to database in background
-		if (this.shouldSync && !this._syncing) {
-			this._syncing = true
-			try {
-				const created = await createGoal(localGoal, this.userId!)
-				if (created) {
-					// Store the DB UUID on the local goal
-					updateLocalGoal(localGoal.id, { dbId: created.id })
-					localGoal.dbId = created.id
-					console.log(`🔄 Background sync: Created goal "${localGoal.title}" → ${created.id}`)
-				}
-			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
-				// Don't throw — local creation succeeded
-			} finally {
-				this._syncing = false
+		await this._withDbWriteMutex(async () => {
+			const created = await createGoal(localGoal, this.userId!)
+			if (created) {
+				// Store the DB UUID on the local goal
+				updateLocalGoal(localGoal.id, { dbId: created.id })
+				localGoal.dbId = created.id
+				console.log(`🔄 Background sync: Created goal "${localGoal.title}" → ${created.id}`)
 			}
-		}
+		})
 
 		return localGoal
 	}
@@ -466,19 +480,13 @@ export class GoalDataManager {
 		}
 
 		// Sync to DB using the real UUID
-		if (localGoal && this.shouldSync && !this._syncing) {
-			const dbId = localGoal.dbId
-			if (dbId) {
-				this._syncing = true
-				try {
-					await updateGoal(dbId, goalData, this.userId!)
-					console.log(`🔄 Background sync: Updated goal "${localGoal.title}"`)
-				} catch (error) {
-					console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
-				} finally {
-					this._syncing = false
-				}
-			}
+		if (localGoal?.dbId) {
+			const goalDbId = localGoal.dbId
+			const goalTitle = localGoal.title
+			await this._withDbWriteMutex(async () => {
+				await updateGoal(goalDbId, goalData, this.userId!)
+				console.log(`🔄 Background sync: Updated goal "${goalTitle}"`)
+			})
 		}
 
 		return localGoal
@@ -507,16 +515,12 @@ export class GoalDataManager {
 		}
 
 		// Delete from DB using the real UUID
-		if (success && this.shouldSync && dbId && !this._syncing) {
-			this._syncing = true
-			try {
-				await deleteGoal(dbId, this.userId!)
-				console.log(`🔄 Background sync: Deleted goal ${dbId}`)
-			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal deletion:`, error)
-			} finally {
-				this._syncing = false
-			}
+		if (success && dbId) {
+			const goalDbId = dbId
+			await this._withDbWriteMutex(async () => {
+				await deleteGoal(goalDbId, this.userId!)
+				console.log(`🔄 Background sync: Deleted goal ${goalDbId}`)
+			})
 		}
 
 		return success
