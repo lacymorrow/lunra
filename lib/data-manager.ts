@@ -7,7 +7,14 @@ import { convertDatabaseToLocalStorage } from "@/types/database"
 const GOALS_KEY = "savedGoals"
 const LAST_SYNC_KEY = "lastSyncTimestamp"
 
-// Helper functions for localStorage
+// --- Helpers: goal signature for dedup (title+description, case-insensitive) ---
+
+function goalSignature(title: string, description: string | null | undefined): string {
+	return `${(title || "").toLowerCase().trim()}|${(description || "").toLowerCase().trim()}`
+}
+
+// --- Helper functions for localStorage ---
+
 function getLocalGoals(): SavedGoal[] {
 	if (typeof window === "undefined") return []
 
@@ -23,6 +30,12 @@ function setLocalGoals(goals: SavedGoal[]): void {
 function getLocalGoalById(id: number): SavedGoal | null {
 	const goals = getLocalGoals()
 	return goals.find((goal) => goal.id === id) || null
+}
+
+/** Find a local goal by its database UUID (dbId field). */
+function getLocalGoalByDbId(dbId: string): SavedGoal | null {
+	const goals = getLocalGoals()
+	return goals.find((goal) => goal.dbId === dbId) || null
 }
 
 function createLocalGoal(goal: Omit<SavedGoal, "id" | "createdAt">): SavedGoal {
@@ -74,6 +87,8 @@ export class GoalDataManager {
 	private userId: string | null = null
 	private userProfile: DatabaseUserProfile | null = null
 	private syncIntervalId: NodeJS.Timeout | null = null
+	/** Mutex: true while a sync or CRUD+DB operation is in-flight. */
+	private _syncing = false
 
 	constructor(userId?: string, userProfile?: DatabaseUserProfile | null) {
 		this.userId = userId || null
@@ -109,12 +124,22 @@ export class GoalDataManager {
 		return this.isPaidUser
 	}
 
+	/** Expose syncing state for tests / UI. */
+	get isSyncing(): boolean {
+		return this._syncing
+	}
+
 	private startAutoSync(): void {
 		// Clear any existing interval
 		this.stopAutoSync()
 
 		// Sync every 30 seconds for paid users
 		this.syncIntervalId = setInterval(async () => {
+			// Skip if another sync/CRUD-DB op is already running (mutex)
+			if (this._syncing) {
+				console.log("⏸️ Auto-sync skipped — another operation in progress")
+				return
+			}
 			try {
 				await this.bidirectionalSync()
 			} catch (error) {
@@ -130,7 +155,10 @@ export class GoalDataManager {
 		}
 	}
 
-	// Bidirectional sync for paid users - syncs both ways
+	// ----------------------------------------------------------------
+	// Bidirectional sync — fixed to use dbId + signature matching
+	// ----------------------------------------------------------------
+
 	async bidirectionalSync(): Promise<{
 		localToDbSynced: number;
 		dbToLocalSynced: number;
@@ -140,6 +168,12 @@ export class GoalDataManager {
 		if (!this.shouldSync) {
 			return { localToDbSynced: 0, dbToLocalSynced: 0, conflicts: 0, errors: [] }
 		}
+
+		// Acquire mutex
+		if (this._syncing) {
+			return { localToDbSynced: 0, dbToLocalSynced: 0, conflicts: 0, errors: ["Sync already in progress"] }
+		}
+		this._syncing = true
 
 		console.log("🔄 Starting bidirectional sync for paid user")
 
@@ -151,61 +185,91 @@ export class GoalDataManager {
 				errors: [] as string[]
 			}
 
-			// Get both local and database goals
-			const localGoals = getLocalGoals()
+			// Get both sides
+			let localGoals = getLocalGoals()
 			const dbGoals = await getGoals(this.userId!)
-			const dbGoalsConverted = dbGoals.map(convertDatabaseToLocalStorage)
+			const dbGoalsConverted = dbGoals.map(convertDatabaseToLocalStorage) as SavedGoal[]
 
-			// Create maps for easier lookup
-			const localGoalsMap = new Map(localGoals.map(g => [g.id, g]))
-			const dbGoalsMap = new Map(dbGoalsConverted.map(g => [g.id, g]))
-
-			// Find goals that exist locally but not in database (sync up)
-			for (const localGoal of localGoals) {
-				if (!dbGoalsMap.has(localGoal.id)) {
-					try {
-						await createGoal(localGoal, this.userId!)
-						result.localToDbSynced++
-						console.log(`📤 Synced local goal to database: "${localGoal.title}"`)
-					} catch (error) {
-						const errorMsg = `Failed to sync local goal "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-						result.errors.push(errorMsg)
-						console.error(errorMsg)
-					}
-				}
+			// Build lookup maps:
+			// 1. dbId → local goal  (for goals already synced)
+			// 2. signature → local goal  (fallback for goals not yet linked)
+			const localByDbId = new Map<string, SavedGoal>()
+			const localBySig = new Map<string, SavedGoal>()
+			for (const g of localGoals) {
+				if (g.dbId) localByDbId.set(g.dbId, g)
+				localBySig.set(goalSignature(g.title, g.description), g)
 			}
 
-			// Find goals that exist in database but not locally (sync down)
+			// dbId set for quick "is this DB goal known locally?"
+			const knownDbIds = new Set(localGoals.map(g => g.dbId).filter(Boolean))
+
+			// --- Sync DOWN: DB → local ---
 			for (const dbGoal of dbGoalsConverted) {
-				if (!localGoalsMap.has(dbGoal.id)) {
-					try {
-						const localGoals = getLocalGoals()
-						localGoals.push(dbGoal)
-						setLocalGoals(localGoals)
-						result.dbToLocalSynced++
-						console.log(`📥 Synced database goal to local: "${dbGoal.title}"`)
-					} catch (error) {
-						const errorMsg = `Failed to sync database goal "${dbGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-						result.errors.push(errorMsg)
-						console.error(errorMsg)
+				const dbUuid = dbGoal.dbId!
+				// Already linked?
+				if (knownDbIds.has(dbUuid)) {
+					// Check for conflict (DB changed vs local)
+					const local = localByDbId.get(dbUuid)!
+					if (this.hasConflict(local, dbGoal)) {
+						// Local wins — push local state to DB
+						try {
+							await updateGoal(dbUuid, local, this.userId!)
+							result.conflicts++
+							console.log(`🔀 Resolved conflict for "${local.title}" (local wins)`)
+						} catch (error) {
+							result.errors.push(`Conflict resolution failed for "${local.title}": ${error instanceof Error ? error.message : String(error)}`)
+						}
 					}
+					continue
+				}
+
+				// Not linked by dbId — try signature match (covers initial-sync migration)
+				const sig = goalSignature(dbGoal.title, dbGoal.description)
+				const matchBySig = localBySig.get(sig)
+				if (matchBySig && !matchBySig.dbId) {
+					// Link the existing local goal to this DB record
+					updateLocalGoal(matchBySig.id, { dbId: dbUuid })
+					knownDbIds.add(dbUuid)
+					localByDbId.set(dbUuid, matchBySig)
+					console.log(`🔗 Linked local goal "${matchBySig.title}" to DB UUID ${dbUuid}`)
+					continue
+				}
+
+				// Truly new from DB — pull down
+				try {
+					// Assign a new local numeric ID
+					localGoals = getLocalGoals() // re-read in case prior iteration mutated
+					const newId = localGoals.length > 0 ? Math.max(...localGoals.map(g => g.id)) + 1 : 1
+					const newLocal: SavedGoal = { ...dbGoal, id: newId, dbId: dbUuid }
+					localGoals.push(newLocal)
+					setLocalGoals(localGoals)
+					result.dbToLocalSynced++
+					console.log(`📥 Synced DB goal to local: "${dbGoal.title}"`)
+				} catch (error) {
+					result.errors.push(`Failed to sync DB goal "${dbGoal.title}" locally: ${error instanceof Error ? error.message : String(error)}`)
 				}
 			}
 
-			// Handle conflicts (goals with same ID but different data)
+			// --- Sync UP: local → DB ---
+			// Re-read local goals (may have been mutated above)
+			localGoals = getLocalGoals()
+			const dbUuids = new Set(dbGoals.map(g => g.id))
+
 			for (const localGoal of localGoals) {
-				const dbGoal = dbGoalsMap.get(localGoal.id)
-				if (dbGoal && this.hasConflict(localGoal, dbGoal)) {
-					try {
-						// Use local version as source of truth for conflicts
-						await updateGoal(dbGoal.id as string, localGoal, this.userId!)
-						result.conflicts++
-						console.log(`🔀 Resolved conflict for goal: "${localGoal.title}" (local version wins)`)
-					} catch (error) {
-						const errorMsg = `Failed to resolve conflict for "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
-						result.errors.push(errorMsg)
-						console.error(errorMsg)
+				// Already in DB?
+				if (localGoal.dbId && dbUuids.has(localGoal.dbId)) continue
+
+				// Not in DB yet — push up
+				try {
+					const created = await createGoal(localGoal, this.userId!)
+					if (created) {
+						// Store the DB UUID back on the local goal
+						updateLocalGoal(localGoal.id, { dbId: created.id })
+						console.log(`📤 Synced local goal to DB: "${localGoal.title}" → ${created.id}`)
 					}
+					result.localToDbSynced++
+				} catch (error) {
+					result.errors.push(`Failed to sync local goal "${localGoal.title}" to DB: ${error instanceof Error ? error.message : String(error)}`)
 				}
 			}
 
@@ -224,6 +288,8 @@ export class GoalDataManager {
 				conflicts: 0,
 				errors: [errorMsg]
 			}
+		} finally {
+			this._syncing = false
 		}
 	}
 
@@ -238,7 +304,11 @@ export class GoalDataManager {
 		)
 	}
 
-	// Legacy sync method - now used for initial migration when signing up
+	// ----------------------------------------------------------------
+	// Initial sync — runs once when user first authenticates.
+	// Now also stores the DB UUID (dbId) on each local goal.
+	// ----------------------------------------------------------------
+
 	async syncLocalGoalsToDatabase(): Promise<{
 		synced: number;
 		skipped: number;
@@ -254,6 +324,12 @@ export class GoalDataManager {
 			return { synced: 0, skipped: 0, errors: [], clearedLocal: false }
 		}
 
+		// Acquire mutex
+		if (this._syncing) {
+			return { synced: 0, skipped: 0, errors: ["Sync already in progress"], clearedLocal: false }
+		}
+		this._syncing = true
+
 		console.log(`🔄 Starting initial sync of ${localGoals.length} local goals to database`)
 
 		try {
@@ -261,30 +337,45 @@ export class GoalDataManager {
 			const dbGoals = await getGoals(this.userId!)
 			console.log(`📊 Found ${dbGoals.length} existing goals in database`)
 
-			// Create a comprehensive duplicate detection system
-			const dbGoalSignatures = new Set(
-				dbGoals.map(g => `${g.title.toLowerCase().trim()}|${g.description?.toLowerCase().trim() || ''}`)
-			)
+			// Build signature → DB UUID map for linking
+			const dbGoalsBySignature = new Map<string, string>()
+			for (const g of dbGoals) {
+				dbGoalsBySignature.set(goalSignature(g.title, g.description), g.id)
+			}
 
 			let synced = 0
 			let skipped = 0
 			const errors: string[] = []
 
 			// Process each local goal
-			for (const [index, localGoal] of localGoals.entries()) {
-				const signature = `${localGoal.title.toLowerCase().trim()}|${(localGoal.description || '').toLowerCase().trim()}`
-
-				if (dbGoalSignatures.has(signature)) {
-					console.log(`⏭️  Skipping duplicate goal: "${localGoal.title}"`)
+			for (const localGoal of localGoals) {
+				// Already linked to a DB record?
+				if (localGoal.dbId) {
+					console.log(`⏭️  Already linked: "${localGoal.title}" → ${localGoal.dbId}`)
 					skipped++
 					continue
 				}
 
+				const sig = goalSignature(localGoal.title, localGoal.description)
+
+				// Signature match with existing DB goal — link without creating duplicate
+				const existingDbId = dbGoalsBySignature.get(sig)
+				if (existingDbId) {
+					updateLocalGoal(localGoal.id, { dbId: existingDbId })
+					console.log(`🔗 Linked existing goal "${localGoal.title}" → ${existingDbId}`)
+					skipped++
+					continue
+				}
+
+				// New goal — push to DB and store UUID
 				try {
-					console.log(`📤 Syncing goal ${index + 1}/${localGoals.length}: "${localGoal.title}"`)
-					await createGoal(localGoal, this.userId!)
+					console.log(`📤 Syncing goal: "${localGoal.title}"`)
+					const created = await createGoal(localGoal, this.userId!)
+					if (created) {
+						updateLocalGoal(localGoal.id, { dbId: created.id })
+						console.log(`✅ Synced: "${localGoal.title}" → ${created.id}`)
+					}
 					synced++
-					console.log(`✅ Successfully synced: "${localGoal.title}"`)
 				} catch (error) {
 					const errorMsg = `Failed to sync "${localGoal.title}": ${error instanceof Error ? error.message : String(error)}`
 					console.error(`❌ ${errorMsg}`)
@@ -294,15 +385,11 @@ export class GoalDataManager {
 
 			console.log(`🎉 Initial sync complete: ${synced} synced, ${skipped} skipped, ${errors.length} errors`)
 
-			// For paid users, don't clear local storage - keep it for offline use
-			// For free users, we don't sync to database anyway
-			const clearedLocal = false
-
 			return {
 				synced,
 				skipped,
 				errors,
-				clearedLocal
+				clearedLocal: false
 			}
 		} catch (error) {
 			const errorMsg = `Database sync failed: ${error instanceof Error ? error.message : String(error)}`
@@ -313,25 +400,49 @@ export class GoalDataManager {
 				errors: [errorMsg],
 				clearedLocal: false
 			}
+		} finally {
+			this._syncing = false
 		}
 	}
 
-	// Core CRUD operations - all operations now use localStorage as primary storage
+	// ----------------------------------------------------------------
+	// Mutex helper — centralizes background DB write guard logic.
+	// ----------------------------------------------------------------
+
+	private async _withDbWriteMutex(dbOperation: () => Promise<void>): Promise<void> {
+		if (!this.shouldSync || this._syncing) {
+			if (this._syncing) {
+				console.log("DB write skipped, sync in progress.")
+			}
+			return
+		}
+
+		this._syncing = true
+		try {
+			await dbOperation()
+		} catch (error) {
+			console.error(`⚠️ Background DB operation failed:`, error)
+		} finally {
+			this._syncing = false
+		}
+	}
+
+	// ----------------------------------------------------------------
+	// Core CRUD — all operations use localStorage as primary storage.
+	// DB writes use dbId (UUID) instead of casting numeric IDs.
+	// ----------------------------------------------------------------
+
 	async getGoals(): Promise<SavedGoal[]> {
-		// Always return from localStorage for immediate offline access
 		return getLocalGoals()
 	}
 
 	async getGoalById(id: number | string): Promise<SavedGoal | null> {
-		// For offline-first approach, always check localStorage first
 		if (typeof id === "number") {
 			return getLocalGoalById(id)
 		}
 
-		// If it's a database UUID, try to find it in local storage by matching properties
-		const localGoals = getLocalGoals()
-		const matchingGoal = localGoals.find(g => g.id?.toString() === id)
-		return matchingGoal || null
+		// If it's a UUID string, look up by dbId
+		return getLocalGoalByDbId(id)
 	}
 
 	async createGoal(goalData: Omit<SavedGoal, "id" | "createdAt">): Promise<SavedGoal> {
@@ -339,87 +450,90 @@ export class GoalDataManager {
 		const localGoal = createLocalGoal(goalData)
 
 		// If user is paid, also sync to database in background
-		if (this.shouldSync) {
-			try {
-				await createGoal(localGoal, this.userId!)
-				console.log(`🔄 Background sync: Created goal "${localGoal.title}" in database`)
-			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
-				// Don't throw error - local creation succeeded
+		await this._withDbWriteMutex(async () => {
+			const created = await createGoal(localGoal, this.userId!)
+			if (created) {
+				// Store the DB UUID on the local goal
+				updateLocalGoal(localGoal.id, { dbId: created.id })
+				localGoal.dbId = created.id
+				console.log(`🔄 Background sync: Created goal "${localGoal.title}" → ${created.id}`)
 			}
-		}
+		})
 
 		return localGoal
 	}
 
 	async updateGoal(id: number | string, goalData: Partial<SavedGoal>): Promise<SavedGoal | null> {
-		// Always update localStorage first
 		let localGoal: SavedGoal | null = null
 
 		if (typeof id === "number") {
 			localGoal = updateLocalGoal(id, goalData)
 		} else {
-			// If it's a UUID, find the local goal and update it
-			const localGoals = getLocalGoals()
-			const index = localGoals.findIndex(g => g.id?.toString() === id)
+			// UUID string — find by dbId
+			const goals = getLocalGoals()
+			const index = goals.findIndex(g => g.dbId === id)
 			if (index !== -1) {
-				localGoals[index] = { ...localGoals[index], ...goalData }
-				setLocalGoals(localGoals)
-				localGoal = localGoals[index]
+				goals[index] = { ...goals[index], ...goalData }
+				setLocalGoals(goals)
+				localGoal = goals[index]
 			}
 		}
 
-		// If user is paid, also sync to database in background
-		if (localGoal && this.shouldSync) {
-			try {
-				await updateGoal(id as string, goalData, this.userId!)
-				console.log(`🔄 Background sync: Updated goal "${localGoal.title}" in database`)
-			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal "${localGoal.title}":`, error)
-				// Don't throw error - local update succeeded
-			}
+		// Sync to DB using the real UUID
+		if (localGoal?.dbId) {
+			const goalDbId = localGoal.dbId
+			const goalTitle = localGoal.title
+			await this._withDbWriteMutex(async () => {
+				await updateGoal(goalDbId, goalData, this.userId!)
+				console.log(`🔄 Background sync: Updated goal "${goalTitle}"`)
+			})
 		}
 
 		return localGoal
 	}
 
 	async deleteGoal(id: number | string): Promise<boolean> {
-		// Always delete from localStorage first
 		let success = false
+		let dbId: string | undefined
 
 		if (typeof id === "number") {
+			// Look up dbId before deleting
+			const goal = getLocalGoalById(id)
+			dbId = goal?.dbId
 			deleteLocalGoal(id)
 			success = true
 		} else {
-			// If it's a UUID, find and delete from local storage
-			const localGoals = getLocalGoals()
-			const filteredGoals = localGoals.filter(g => g.id?.toString() !== id)
-			if (filteredGoals.length < localGoals.length) {
-				setLocalGoals(filteredGoals)
+			// UUID string — find by dbId
+			const goals = getLocalGoals()
+			const target = goals.find(g => g.dbId === id)
+			if (target) {
+				dbId = target.dbId
+				const filtered = goals.filter(g => g.dbId !== id)
+				setLocalGoals(filtered)
 				success = true
 			}
 		}
 
-		// If user is paid, also delete from database in background
-		if (success && this.shouldSync) {
-			try {
-				await deleteGoal(id as string, this.userId!)
-				console.log(`🔄 Background sync: Deleted goal from database`)
-			} catch (error) {
-				console.error(`⚠️ Background sync failed for goal deletion:`, error)
-				// Don't throw error - local deletion succeeded
-			}
+		// Delete from DB using the real UUID
+		if (success && dbId) {
+			const goalDbId = dbId
+			await this._withDbWriteMutex(async () => {
+				await deleteGoal(goalDbId, this.userId!)
+				console.log(`🔄 Background sync: Deleted goal ${goalDbId}`)
+			})
 		}
 
 		return success
 	}
 
-	// Milestone operations
+	// ----------------------------------------------------------------
+	// Milestone operations (unchanged logic, just use this.updateGoal)
+	// ----------------------------------------------------------------
+
 	async markMilestoneComplete(goalId: number, milestoneIndex: number): Promise<void> {
 		const goal = await this.getGoalById(goalId)
 		if (!goal || !goal.milestones || !goal.milestones[milestoneIndex]) return
 
-		// Update the milestone status
 		const updatedMilestones = [...goal.milestones]
 		updatedMilestones[milestoneIndex] = {
 			...updatedMilestones[milestoneIndex],
@@ -427,23 +541,19 @@ export class GoalDataManager {
 			progress: 100,
 		}
 
-		// Find the next pending milestone and set it to 'in-progress'
 		const nextPendingIndex = updatedMilestones.findIndex((m, index) => index > milestoneIndex && m.status === "pending")
-
 		if (nextPendingIndex !== -1) {
 			updatedMilestones[nextPendingIndex] = {
 				...updatedMilestones[nextPendingIndex],
 				status: "in-progress",
-				progress: 10, // Give it a small starting progress
+				progress: 10,
 			}
 		}
 
-		// Calculate new progress
 		const totalMilestones = updatedMilestones.length
 		const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
 		const newProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0
 
-		// Update the goal
 		await this.updateGoal(goalId, {
 			milestones: updatedMilestones,
 			progress: newProgress,
@@ -455,7 +565,6 @@ export class GoalDataManager {
 		const goal = await this.getGoalById(goalId)
 		if (!goal || !goal.milestones || !goal.milestones[milestoneIndex]) return
 
-		// Update the milestone status back to pending/in-progress
 		const updatedMilestones = [...goal.milestones]
 		updatedMilestones[milestoneIndex] = {
 			...updatedMilestones[milestoneIndex],
@@ -463,7 +572,6 @@ export class GoalDataManager {
 			progress: milestoneIndex === 0 ? 10 : 0,
 		}
 
-		// Set any subsequent milestones back to pending
 		for (let i = milestoneIndex + 1; i < updatedMilestones.length; i++) {
 			if (updatedMilestones[i].status === "in-progress") {
 				updatedMilestones[i] = {
@@ -475,12 +583,10 @@ export class GoalDataManager {
 			}
 		}
 
-		// Calculate new progress
 		const totalMilestones = updatedMilestones.length
 		const completedMilestones = updatedMilestones.filter((m) => m.status === "completed").length
 		const newProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0
 
-		// Update the goal
 		await this.updateGoal(goalId, {
 			milestones: updatedMilestones,
 			progress: newProgress,
@@ -492,20 +598,14 @@ export class GoalDataManager {
 		const goal = await this.getGoalById(goalId)
 		if (!goal || !goal.milestones) return
 
-		// Simple timeline adjustment - add one week to all pending milestones
 		const updatedMilestones = goal.milestones.map((milestone) => {
 			if (milestone.status === "pending") {
-				return {
-					...milestone,
-					week: milestone.week + 1,
-				}
+				return { ...milestone, week: milestone.week + 1 }
 			}
 			return milestone
 		})
 
-		await this.updateGoal(goalId, {
-			milestones: updatedMilestones,
-		})
+		await this.updateGoal(goalId, { milestones: updatedMilestones })
 	}
 
 	// Cleanup method

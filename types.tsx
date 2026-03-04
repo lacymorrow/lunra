@@ -1,5 +1,6 @@
 export interface SavedGoal {
   id: number
+  dbId?: string // Supabase UUID — set after sync to database
   title: string
   description: string
   timeline: string
