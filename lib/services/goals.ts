@@ -4,47 +4,22 @@ import type { SavedGoal } from "@/types"
 import { convertLocalStorageToDatabase } from "@/types/database"
 
 export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
-  // Fetch goals directly with their milestones joined, instead of using the
-  // RPC function which only returns stats (total/completed counts) but not
-  // the actual milestone objects needed for timeline rendering.
-  const { data: goals, error: goalsError } = await supabase()
+  // Fetch goals with their milestones in a single query using Supabase's
+  // foreign table join, instead of the RPC function which only returned
+  // stats (total/completed counts) but not actual milestone objects.
+  const { data, error } = await supabase()
     .from("goals")
-    .select("*")
+    .select("*, milestones(*)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
+    .order("week", { foreignTable: "milestones", ascending: true })
 
-  if (goalsError) {
-    console.error("Error fetching goals:", goalsError)
-    throw goalsError
+  if (error) {
+    console.error("Error fetching goals with milestones:", error)
+    throw error
   }
 
-  if (!goals || goals.length === 0) return []
-
-  // Fetch all milestones for these goals in a single batch query
-  const goalIds = goals.map(g => g.id)
-  const { data: milestones, error: milestonesError } = await supabase()
-    .from("milestones")
-    .select("*")
-    .in("goal_id", goalIds)
-    .order("week", { ascending: true })
-
-  if (milestonesError) {
-    // Log but don't throw — goals without milestones are still usable
-    console.error("Error fetching milestones (goals will have empty milestones):", milestonesError)
-  }
-
-  // Group milestones by goal_id
-  const milestonesByGoal = new Map<string, typeof milestones>()
-  for (const m of (milestones || [])) {
-    const existing = milestonesByGoal.get(m.goal_id) || []
-    existing.push(m)
-    milestonesByGoal.set(m.goal_id, existing)
-  }
-
-  return goals.map(goal => ({
-    ...goal,
-    milestones: milestonesByGoal.get(goal.id) || [],
-  }))
+  return data || []
 }
 
 export async function getGoalById(goalId: string, userId: string): Promise<DatabaseGoalWithMilestones | null> {
