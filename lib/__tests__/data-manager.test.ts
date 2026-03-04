@@ -151,10 +151,20 @@ describe("GoalDataManager", () => {
 			expect(found).toBeNull()
 		})
 
-		it("getGoalById handles string IDs", async () => {
+		it("getGoalById handles string IDs (dbId / UUID lookup)", async () => {
 			const created = await manager.createGoal(makeGoalData())
-			const found = await manager.getGoalById(String(created.id))
+			// Simulate a goal that has been synced and has a dbId
+			const goals = await manager.getGoals()
+			goals[0].dbId = "test-uuid-1234"
+			localStorage.setItem("savedGoals", JSON.stringify(goals))
+
+			const found = await manager.getGoalById("test-uuid-1234")
 			expect(found).not.toBeNull()
+			expect(found!.title).toBe(created.title)
+
+			// Stringified numeric ID should NOT match (this was the old broken behavior)
+			const notFound = await manager.getGoalById(String(created.id))
+			expect(notFound).toBeNull()
 		})
 
 		it("updateGoal modifies an existing goal", async () => {
@@ -184,12 +194,24 @@ describe("GoalDataManager", () => {
 			expect(result).toBe(true)
 		})
 
-		it("deleteGoal with string ID removes matching goal", async () => {
+		it("deleteGoal with string dbId removes matching goal", async () => {
 			const created = await manager.createGoal(makeGoalData())
-			const result = await manager.deleteGoal(String(created.id))
-			expect(result).toBe(true)
+			// Simulate synced goal with dbId
 			const goals = await manager.getGoals()
-			expect(goals).toHaveLength(0)
+			goals[0].dbId = "test-uuid-delete"
+			localStorage.setItem("savedGoals", JSON.stringify(goals))
+
+			const result = await manager.deleteGoal("test-uuid-delete")
+			expect(result).toBe(true)
+			const remaining = await manager.getGoals()
+			expect(remaining).toHaveLength(0)
+		})
+
+		it("deleteGoal with stringified numeric ID returns false (no match by dbId)", async () => {
+			await manager.createGoal(makeGoalData())
+			// This was the old broken behavior — stringified number should NOT match
+			const result = await manager.deleteGoal("1")
+			expect(result).toBe(false)
 		})
 	})
 

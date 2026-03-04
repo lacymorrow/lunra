@@ -117,6 +117,7 @@ describe("convertDatabaseToLocalStorage", () => {
 		expect(result.completedSubGoals).toBe(0)
 		expect(result.createdAt).toBe("2026-01-01T00:00:00Z")
 		expect(typeof result.id).toBe("number")
+		expect(result.dbId).toBe("550e8400-e29b-41d4-a716-446655440000") // UUID preserved
 		expect(result.milestones).toHaveLength(2)
 		expect(result.milestones[0]).toEqual({
 			week: 1,

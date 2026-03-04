@@ -77,7 +77,10 @@ export function convertLocalStorageToDatabase(
 
 export function convertDatabaseToLocalStorage(dbGoal: DatabaseGoalWithMilestones): any {
   return {
-    id: Number.parseInt(dbGoal.id.replace(/-/g, "").substring(0, 10), 16), // Convert UUID to number for compatibility
+    // Generate a stable numeric ID from the UUID for localStorage compatibility,
+    // but also preserve the real UUID in dbId for reliable sync matching.
+    id: Number.parseInt(dbGoal.id.replace(/-/g, "").substring(0, 10), 16),
+    dbId: dbGoal.id, // Preserve the real UUID for sync operations
     title: dbGoal.title,
     description: dbGoal.description || "",
     timeline: dbGoal.timeline || "",
