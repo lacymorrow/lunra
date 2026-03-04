@@ -4,15 +4,47 @@ import type { SavedGoal } from "@/types"
 import { convertLocalStorageToDatabase } from "@/types/database"
 
 export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
-  // Use the custom function we created in our migration to get goals with stats
-  const { data, error } = await supabase().rpc("get_user_goals_with_stats", { user_uuid: userId })
+  // Fetch goals directly with their milestones joined, instead of using the
+  // RPC function which only returns stats (total/completed counts) but not
+  // the actual milestone objects needed for timeline rendering.
+  const { data: goals, error: goalsError } = await supabase()
+    .from("goals")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
 
-  if (error) {
-    console.error("Error fetching goals:", error)
-    throw error
+  if (goalsError) {
+    console.error("Error fetching goals:", goalsError)
+    throw goalsError
   }
 
-  return data || []
+  if (!goals || goals.length === 0) return []
+
+  // Fetch all milestones for these goals in a single batch query
+  const goalIds = goals.map(g => g.id)
+  const { data: milestones, error: milestonesError } = await supabase()
+    .from("milestones")
+    .select("*")
+    .in("goal_id", goalIds)
+    .order("week", { ascending: true })
+
+  if (milestonesError) {
+    // Log but don't throw — goals without milestones are still usable
+    console.error("Error fetching milestones (goals will have empty milestones):", milestonesError)
+  }
+
+  // Group milestones by goal_id
+  const milestonesByGoal = new Map<string, typeof milestones>()
+  for (const m of (milestones || [])) {
+    const existing = milestonesByGoal.get(m.goal_id) || []
+    existing.push(m)
+    milestonesByGoal.set(m.goal_id, existing)
+  }
+
+  return goals.map(goal => ({
+    ...goal,
+    milestones: milestonesByGoal.get(goal.id) || [],
+  }))
 }
 
 export async function getGoalById(goalId: string, userId: string): Promise<DatabaseGoalWithMilestones | null> {
