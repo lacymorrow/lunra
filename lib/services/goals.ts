@@ -27,7 +27,8 @@ export async function getGoals(userId: string): Promise<DatabaseGoalWithMileston
     .order("week", { ascending: true })
 
   if (milestonesError) {
-    console.error("Error fetching milestones:", milestonesError)
+    // Log but don't throw — goals without milestones are still usable
+    console.error("Error fetching milestones (goals will have empty milestones):", milestonesError)
   }
 
   // Group milestones by goal_id
