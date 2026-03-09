@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
 
                 if (session.mode === 'subscription') {
                     const subscription = await stripe.subscriptions.retrieve(session.subscription)
+                    const snapItem = subscription.items.data[0]
 
                     console.log('💳 [webhook-snapshot] Creating subscription record:', {
                         userId,
@@ -66,8 +67,8 @@ export async function POST(request: NextRequest) {
                         stripe_subscription_id: subscription.id,
                         plan_id: planId,
                         status: subscription.status as any,
-                        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                        current_period_start: snapItem ? new Date(snapItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+                        current_period_end: snapItem ? new Date(snapItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
                         cancel_at_period_end: subscription.cancel_at_period_end,
                     })
 
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
 
             case 'customer.subscription.updated': {
                 const subscription = event.data.object
+                const updSnapItem = subscription.items?.data?.[0]
                 console.log('🔄 [webhook-snapshot] Processing subscription updated:', subscription.id)
 
                 const dbSubscription = await getSubscriptionByStripeId(subscription.id)
@@ -102,8 +104,8 @@ export async function POST(request: NextRequest) {
 
                     await updateSubscription(dbSubscription.user_id, {
                         status: subscription.status as any,
-                        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                        current_period_start: updSnapItem ? new Date(updSnapItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+                        current_period_end: updSnapItem ? new Date(updSnapItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
                         cancel_at_period_end: subscription.cancel_at_period_end,
                     })
 

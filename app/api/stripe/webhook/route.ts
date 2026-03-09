@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
 
 				if (session.mode === 'subscription') {
 					const subscription = await stripe.subscriptions.retrieve(session.subscription)
+					const subItem = subscription.items.data[0]
 
 					await createSubscription({
 						user_id: userId,
@@ -50,8 +51,8 @@ export async function POST(request: NextRequest) {
 						stripe_subscription_id: subscription.id,
 						plan_id: planId,
 						status: subscription.status as any,
-						current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-						current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+						current_period_start: subItem ? new Date(subItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+						current_period_end: subItem ? new Date(subItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
 						cancel_at_period_end: subscription.cancel_at_period_end,
 					})
 
@@ -66,13 +67,14 @@ export async function POST(request: NextRequest) {
 
 			case 'customer.subscription.updated': {
 				const subscription = event.data.object
+				const updItem = subscription.items?.data?.[0]
 				const dbSubscription = await getSubscriptionByStripeId(subscription.id)
 
 				if (dbSubscription) {
 					await updateSubscription(dbSubscription.user_id, {
 						status: subscription.status as any,
-						current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-						current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+						current_period_start: updItem ? new Date(updItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+						current_period_end: updItem ? new Date(updItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
 						cancel_at_period_end: subscription.cancel_at_period_end,
 					})
 

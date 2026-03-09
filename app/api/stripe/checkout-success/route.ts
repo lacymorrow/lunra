@@ -73,12 +73,13 @@ export async function GET(request: NextRequest) {
 			if (session.subscription && session.mode === 'subscription') {
 				console.log('💳 [checkout-success] Processing subscription...')
 				const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+				const currentItem = subscription.items.data[0]
 
 				console.log('💳 [checkout-success] Stripe subscription details:', {
 					subscriptionId: subscription.id,
 					status: subscription.status,
-					currentPeriodStart: subscription.current_period_start,
-					currentPeriodEnd: subscription.current_period_end,
+					currentPeriodStart: currentItem?.current_period_start,
+					currentPeriodEnd: currentItem?.current_period_end,
 					cancelAtPeriodEnd: subscription.cancel_at_period_end
 				})
 
@@ -90,8 +91,8 @@ export async function GET(request: NextRequest) {
 					stripe_subscription_id: subscription.id,
 					plan_id: planId as 'seedling' | 'bloom',
 					status: subscription.status as any,
-					current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-					current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+					current_period_start: currentItem ? new Date(currentItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+					current_period_end: currentItem ? new Date(currentItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
 					cancel_at_period_end: subscription.cancel_at_period_end,
 				}
 
