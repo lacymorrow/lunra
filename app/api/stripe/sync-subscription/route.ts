@@ -69,23 +69,25 @@ export async function POST(request: NextRequest) {
             dbSubscription.stripe_subscription_id
         )
 
+        const currentItem = stripeSubscription.items.data[0]
+
         console.log('💳 [sync-subscription] Stripe subscription data:', {
             id: stripeSubscription.id,
             status: stripeSubscription.status,
             customerId: stripeSubscription.customer,
-            currentPeriodStart: stripeSubscription.current_period_start,
-            currentPeriodEnd: stripeSubscription.current_period_end,
+            currentPeriodStart: currentItem?.current_period_start,
+            currentPeriodEnd: currentItem?.current_period_end,
             cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
             itemsCount: stripeSubscription.items.data.length,
-            priceId: stripeSubscription.items.data[0]?.price?.id,
+            priceId: currentItem?.price?.id,
         })
 
         // Update database with latest Stripe data
         console.log('📝 [sync-subscription] Updating subscription in database...')
         const updateData = {
             status: stripeSubscription.status as any,
-            current_period_start: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+            current_period_start: currentItem ? new Date(currentItem.current_period_start * 1000).toISOString() : new Date().toISOString(),
+            current_period_end: currentItem ? new Date(currentItem.current_period_end * 1000).toISOString() : new Date().toISOString(),
             cancel_at_period_end: stripeSubscription.cancel_at_period_end,
         }
 
