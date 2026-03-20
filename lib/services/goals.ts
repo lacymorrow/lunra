@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase"
 import type { DatabaseGoal, DatabaseGoalWithMilestones } from "@/types/database"
 import type { SavedGoal } from "@/types"
-import { convertLocalStorageToDatabase } from "@/types/database"
+import { convertLocalStorageToDatabase, convertPartialLocalStorageToDatabase } from "@/types/database"
 
 export async function getGoals(userId: string): Promise<DatabaseGoalWithMilestones[]> {
   // Fetch goals with their milestones in a single query using Supabase's
@@ -113,8 +113,12 @@ export async function updateGoal(
   goalData: Partial<SavedGoal>,
   userId: string,
 ): Promise<DatabaseGoal | null> {
-  // Convert from localStorage format to database format
-  const dbGoalData = convertLocalStorageToDatabase(goalData)
+  // Use partial converter to only update provided fields (prevents wiping unset fields)
+  const dbGoalData = convertPartialLocalStorageToDatabase(goalData)
+
+  if (Object.keys(dbGoalData).length === 0) {
+    return null // Nothing to update
+  }
 
   // Update the goal
   const { data, error } = await supabase()

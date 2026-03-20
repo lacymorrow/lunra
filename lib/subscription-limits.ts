@@ -1,5 +1,9 @@
-import { PLANS } from '@/lib/stripe-config'
+import { PLANS, isValidPlanId } from '@/lib/stripe-config'
 import { DatabaseUserProfile } from '@/types/database'
+
+function getPlanSafe(planId: string) {
+    return isValidPlanId(planId) ? PLANS[planId] : PLANS.seedling
+}
 
 export function canCreateGoal(userProfile: DatabaseUserProfile | null, currentGoalsCount: number): boolean {
     if (!userProfile) {
@@ -7,7 +11,7 @@ export function canCreateGoal(userProfile: DatabaseUserProfile | null, currentGo
         return currentGoalsCount < 3
     }
 
-    const plan = PLANS[userProfile.plan_id]
+    const plan = getPlanSafe(userProfile.plan_id)
 
     // If unlimited goals (bloom plan)
     if (plan.goalsLimit === -1) {
@@ -23,7 +27,7 @@ export function getGoalsLimit(userProfile: DatabaseUserProfile | null): number {
         return 3 // Default for unauthenticated users
     }
 
-    const plan = PLANS[userProfile.plan_id]
+    const plan = getPlanSafe(userProfile.plan_id)
     return plan.goalsLimit === -1 ? Infinity : plan.goalsLimit
 }
 
@@ -40,7 +44,7 @@ export function getLimitMessage(userProfile: DatabaseUserProfile | null, current
         return `${currentGoalsCount}/3 goals used. Sign up to track your progress!`
     }
 
-    const plan = PLANS[userProfile.plan_id]
+    const plan = getPlanSafe(userProfile.plan_id)
 
     if (plan.goalsLimit === -1) {
         return `${currentGoalsCount} goals created. Unlimited with Bloom!`

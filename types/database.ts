@@ -61,34 +61,60 @@ export interface DatabaseGoalWithMilestones extends DatabaseGoal {
   completed_milestones?: number
 }
 
-// Conversion functions between localStorage format and database format
+// Convert a full SavedGoal to database format (for creates and full updates)
 export function convertLocalStorageToDatabase(
-  localGoal: any,
+  localGoal: Partial<SavedGoal>,
 ): Omit<DatabaseGoal, "id" | "user_id" | "created_at" | "updated_at"> {
   return {
-    title: localGoal.title,
+    title: localGoal.title ?? "",
     description: localGoal.description || null,
     timeline: localGoal.timeline || null,
-    progress: localGoal.progress || 0,
-    status: localGoal.status || "in-progress",
+    progress: localGoal.progress ?? 0,
+    status: (localGoal.status as DatabaseGoal["status"]) ?? "in-progress",
     due_date: localGoal.dueDate || null,
-    sub_goals: localGoal.subGoals || [],
-    completed_sub_goals: localGoal.completedSubGoals || 0,
+    sub_goals: localGoal.subGoals ?? [],
+    completed_sub_goals: localGoal.completedSubGoals ?? 0,
   }
+}
+
+// Convert a partial SavedGoal to partial database format (for partial updates only)
+export function convertPartialLocalStorageToDatabase(
+  localGoal: Partial<SavedGoal>,
+): Partial<Omit<DatabaseGoal, "id" | "user_id" | "created_at" | "updated_at">> {
+  const result: Record<string, unknown> = {}
+  if (localGoal.title !== undefined) result.title = localGoal.title
+  if (localGoal.description !== undefined) result.description = localGoal.description || null
+  if (localGoal.timeline !== undefined) result.timeline = localGoal.timeline || null
+  if (localGoal.progress !== undefined) result.progress = localGoal.progress
+  if (localGoal.status !== undefined) result.status = localGoal.status
+  if (localGoal.dueDate !== undefined) result.due_date = localGoal.dueDate || null
+  if (localGoal.subGoals !== undefined) result.sub_goals = localGoal.subGoals
+  if (localGoal.completedSubGoals !== undefined) result.completed_sub_goals = localGoal.completedSubGoals
+  return result as Partial<Omit<DatabaseGoal, "id" | "user_id" | "created_at" | "updated_at">>
+}
+
+// Generate a stable numeric ID from a UUID using a simple hash.
+// This avoids collisions from the old substring approach.
+function hashUuidToNumber(uuid: string): number {
+  const hex = uuid.replace(/-/g, "")
+  let hash = 0
+  for (let i = 0; i < hex.length; i++) {
+    hash = ((hash << 5) - hash + hex.charCodeAt(i)) | 0
+  }
+  // Ensure positive value within safe integer range
+  return Math.abs(hash)
 }
 
 export function convertDatabaseToLocalStorage(dbGoal: DatabaseGoalWithMilestones): SavedGoal {
   return {
-    // Generate a stable numeric ID from the UUID for localStorage compatibility,
-    // but also preserve the real UUID in dbId for reliable sync matching.
-    id: Number.parseInt(dbGoal.id.replace(/-/g, "").substring(0, 10), 16),
+    id: hashUuidToNumber(dbGoal.id),
     dbId: dbGoal.id, // Preserve the real UUID for sync operations
     title: dbGoal.title,
-    description: dbGoal.description || "",
-    timeline: dbGoal.timeline || "",
+    description: dbGoal.description ?? "",
+    timeline: dbGoal.timeline ?? "",
     progress: dbGoal.progress,
     status: dbGoal.status,
-    dueDate: dbGoal.due_date || "",
+    dueDate: dbGoal.due_date ?? "",
     subGoals: dbGoal.sub_goals,
     completedSubGoals: dbGoal.completed_sub_goals,
     createdAt: dbGoal.created_at,
@@ -98,7 +124,7 @@ export function convertDatabaseToLocalStorage(dbGoal: DatabaseGoalWithMilestones
         task: m.task,
         status: m.status,
         progress: m.progress,
-      })) || [],
+      })) ?? [],
   }
 }
 

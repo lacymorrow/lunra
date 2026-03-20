@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense as ReactSuspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,26 +10,10 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { useGoalData } from "@/contexts/goal-data-context"
 import { useSearchParams } from "next/navigation"
 
-interface SavedGoal {
-  id: number
-  title: string
-  description: string
-  timeline: string
-  progress: number
-  status: string
-  dueDate: string
-  subGoals: string[]
-  completedSubGoals: number
-  createdAt: string
-  milestones: Array<{
-    week: number
-    task: string
-    status: string
-    progress: number
-  }>
-}
+import type { SavedGoal } from "@/types"
+import { Suspense } from "react"
 
-export default function Timeline() {
+function TimelineContent() {
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null)
   const { goals: userGoals, loading, error, dataManager, refreshGoals } = useGoalData()
   const [relatedGoals, setRelatedGoals] = useState<SavedGoal[]>([])
@@ -355,11 +339,11 @@ export default function Timeline() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(currentGoal ? currentGoal.milestones : displayGoal.milestones).map((milestone, index) => (
-                    <div key={index} className="flex items-start space-x-4">
+                  {(currentGoal ? currentGoal.milestones : displayGoal.milestones).map((milestone, milestoneIdx, arr) => (
+                    <div key={milestone.week} className="flex items-start space-x-4">
                       <div className="flex flex-col items-center">
                         <div className={`w-4 h-4 rounded-full ${getStatusColor(milestone.status)}`}></div>
-                        {index < (currentGoal ? currentGoal.milestones : displayGoal.milestones).length - 1 && (
+                        {milestoneIdx < arr.length - 1 && (
                           <div className="w-0.5 h-12 bg-stone-200 mt-2"></div>
                         )}
                       </div>
@@ -389,7 +373,7 @@ export default function Timeline() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => undoMilestoneComplete(currentGoal.id, index)}
+                                    onClick={() => undoMilestoneComplete(currentGoal.id, milestoneIdx)}
                                     className="rounded-full border-sage-200 text-sage-700 hover:bg-sage-50"
                                   >
                                     Undo
@@ -397,7 +381,7 @@ export default function Timeline() {
                                 ) : milestone.status === "in-progress" ? (
                                   <Button
                                     size="sm"
-                                    onClick={() => markMilestoneComplete(currentGoal.id, index)}
+                                    onClick={() => markMilestoneComplete(currentGoal.id, milestoneIdx)}
                                     className="rounded-full bg-sage-500 hover:bg-sage-600 text-white"
                                   >
                                     <Check className="h-3 w-3 mr-1" />
@@ -534,9 +518,9 @@ export default function Timeline() {
                     currentGoal.milestones
                       .filter((m) => m.status !== "completed")
                       .slice(0, 2)
-                      .map((milestone, index) => (
+                      .map((milestone) => (
                         <div
-                          key={index}
+                          key={milestone.week}
                           className="flex items-center justify-between p-4 bg-rose-50 rounded-xl border border-rose-100"
                         >
                           <div>
@@ -590,5 +574,17 @@ export default function Timeline() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Timeline() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#faf8f5" }}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-400"></div>
+      </div>
+    }>
+      <TimelineContent />
+    </Suspense>
   )
 }

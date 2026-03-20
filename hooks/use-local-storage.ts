@@ -105,10 +105,16 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
 		}
 	}, [key]) // Only depend on key
 
+	// Keep a ref of the current value for the storage listener
+	const valueRef = useRef(value)
+	useEffect(() => {
+		valueRef.current = value
+	}, [value])
+
 	// Listen for localStorage changes from other tabs/windows
 	useEffect(() => {
 		const handleStorageChange = (e: StorageEvent) => {
-			if (e.key === key && e.newValue !== JSON.stringify(value)) {
+			if (e.key === key && e.newValue !== JSON.stringify(valueRef.current)) {
 				try {
 					const newValue = e.newValue ? JSON.parse(e.newValue) : null
 					setValue(newValue)
@@ -120,7 +126,7 @@ export function useLocalStorage<T = any>(key: string, defaultValue: T | null = n
 
 		window.addEventListener("storage", handleStorageChange)
 		return () => window.removeEventListener("storage", handleStorageChange)
-	}, [key, value])
+	}, [key])
 
 	return {
 		value,

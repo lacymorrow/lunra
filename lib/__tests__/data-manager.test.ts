@@ -189,9 +189,9 @@ describe("GoalDataManager", () => {
 			expect(goals).toHaveLength(0)
 		})
 
-		it("deleteGoal returns true even for non-existent numeric ID (filter is a no-op)", async () => {
+		it("deleteGoal returns false for non-existent numeric ID", async () => {
 			const result = await manager.deleteGoal(9999)
-			expect(result).toBe(true)
+			expect(result).toBe(false)
 		})
 
 		it("deleteGoal with string dbId removes matching goal", async () => {

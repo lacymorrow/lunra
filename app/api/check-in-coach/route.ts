@@ -1,14 +1,46 @@
 import { openai } from "@ai-sdk/openai"
 import { streamText } from "ai"
+import { createClientServerWithAuth } from "@/lib/supabase-server"
+import { NextRequest } from "next/server"
 
 export const maxDuration = 60
 
-export async function POST(req: Request) {
-  const { messages } = await req.json()
+export async function POST(req: NextRequest) {
+  // Auth check: require authenticated user
+  try {
+    const supabase = createClientServerWithAuth(req)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
 
-  const result = streamText({
-    model: openai("gpt-4o"),
-    system: `You are a supportive and insightful life coach at lunra, specializing in goal achievement and personal development. Your role is to provide personalized guidance based on users' weekly check-in responses.
+  try {
+    const body = await req.json()
+    const { messages } = body
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid messages format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    // Limit message count to prevent cost abuse
+    const limitedMessages = messages.slice(-20)
+
+    const result = streamText({
+      model: openai("gpt-4o"),
+      system: `You are a supportive and insightful life coach at lunra, specializing in goal achievement and personal development. Your role is to provide personalized guidance based on users' weekly check-in responses.
 
 COACHING APPROACH:
 1. Be encouraging and supportive, but also honest and constructive
@@ -27,8 +59,18 @@ RESPONSE GUIDELINES:
 - Reference their progress rating and provide context for improvement
 
 Keep responses conversational, empathetic, and focused on forward momentum.`,
-    messages,
-  })
+      messages: limitedMessages,
+    })
 
-  return result.toDataStreamResponse()
+    return result.toDataStreamResponse()
+  } catch (error) {
+    console.error("Check-in coach error:", error)
+    return new Response(
+      JSON.stringify({ error: "Failed to process request" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    )
+  }
 }

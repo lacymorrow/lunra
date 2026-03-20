@@ -35,6 +35,7 @@ vi.mock("@/lib/data-manager", () => ({
 		setUserData: vi.fn(),
 		destroy: vi.fn(),
 	})),
+	cleanupDataManager: vi.fn(),
 }))
 
 import { GoalDataProvider, useGoalData } from "@/contexts/goal-data-context"

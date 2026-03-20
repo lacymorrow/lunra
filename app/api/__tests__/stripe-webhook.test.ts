@@ -17,20 +17,24 @@ vi.mock("@/lib/services/subscriptions", () => ({
 const mockConstructEvent = vi.fn()
 const mockRetrieveSubscription = vi.fn()
 
-vi.mock("@/lib/stripe", () => ({
-	stripe: {
-		webhooks: {
-			constructEvent: (...args: any[]) => mockConstructEvent(...args),
-		},
-		subscriptions: {
-			retrieve: (...args: any[]) => mockRetrieveSubscription(...args),
-		},
-	},
-	PLANS: {
+vi.mock("@/lib/stripe", () => {
+	const plans = {
 		seedling: { name: "Seedling", price: 0, priceId: "", goalsLimit: 3, features: [] },
 		bloom: { name: "Bloom", price: 9, priceId: "price_bloom_test", goalsLimit: -1, features: [] },
-	},
-}))
+	}
+	return {
+		stripe: {
+			webhooks: {
+				constructEvent: (...args: any[]) => mockConstructEvent(...args),
+			},
+			subscriptions: {
+				retrieve: (...args: any[]) => mockRetrieveSubscription(...args),
+			},
+		},
+		PLANS: plans,
+		isValidPlanId: (planId: string) => planId in plans,
+	}
+})
 
 // Mock next/headers
 vi.mock("next/headers", () => ({
@@ -77,12 +81,17 @@ describe("Stripe Webhook", () => {
 	})
 
 	it("handles checkout.session.completed event", async () => {
+		const now = Math.floor(Date.now() / 1000)
 		const mockSubscription = {
 			id: "sub_123",
 			status: "active",
-			current_period_start: Math.floor(Date.now() / 1000),
-			current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
 			cancel_at_period_end: false,
+			items: {
+				data: [{
+					current_period_start: now,
+					current_period_end: now + 86400 * 30,
+				}],
+			},
 		}
 
 		mockConstructEvent.mockReturnValue({
@@ -124,17 +133,20 @@ describe("Stripe Webhook", () => {
 	})
 
 	it("handles customer.subscription.updated event", async () => {
+		const now = Math.floor(Date.now() / 1000)
 		mockConstructEvent.mockReturnValue({
 			type: "customer.subscription.updated",
 			data: {
 				object: {
 					id: "sub_123",
 					status: "active",
-					current_period_start: Math.floor(Date.now() / 1000),
-					current_period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
 					cancel_at_period_end: false,
 					items: {
-						data: [{ price: { id: "price_bloom_test" } }],
+						data: [{
+							price: { id: "price_bloom_test" },
+							current_period_start: now,
+							current_period_end: now + 86400 * 30,
+						}],
 					},
 				},
 			},
@@ -188,7 +200,13 @@ describe("Stripe Webhook", () => {
 		mockConstructEvent.mockReturnValue({
 			type: "invoice.payment_failed",
 			data: {
-				object: { subscription: "sub_123" },
+				object: {
+					parent: {
+						subscription_details: {
+							subscription: "sub_123",
+						},
+					},
+				},
 			},
 		})
 

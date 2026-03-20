@@ -12,7 +12,7 @@ import Link from "next/link"
 import { useChat } from "ai/react"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useToast } from "@/hooks/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+// Toaster is rendered globally in ClientLayout
 
 export default function CheckIn() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -180,9 +180,9 @@ export default function CheckIn() {
                       </div>
                     </div>
 
-                    {messages.map((message, index) => (
+                    {messages.map((message) => (
                       <div
-                        key={index}
+                        key={message.id}
                         className={`p-6 rounded-xl ${
                           message.role === "user"
                             ? "bg-stone-50 border border-stone-100 ml-8"
@@ -273,7 +273,7 @@ export default function CheckIn() {
             </div>
           </div>
         </div>
-        <Toaster />
+        {/* Toaster is rendered globally in ClientLayout */}
       </div>
     )
   }
@@ -419,7 +419,6 @@ export default function CheckIn() {
           </div>
         </div>
       </div>
-      <Toaster />
     </div>
   )
 }

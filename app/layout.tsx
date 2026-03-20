@@ -17,9 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <script async src="https://js.stripe.com/v3/"></script>
-      </head>
+      <head />
       <body>
         {/* Wrap children with ClientLayout */}
         <ClientLayout>{children}</ClientLayout>

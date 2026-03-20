@@ -2,6 +2,9 @@ import { stripe } from '@/lib/stripe'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
+    }
     console.log('🔍 [check-stripe-config] Checking Stripe configuration...')
 
     const priceId = process.env.STRIPE_BLOOM_PRICE_ID

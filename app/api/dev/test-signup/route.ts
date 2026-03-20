@@ -2,6 +2,9 @@ import { createClientServer } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
+    }
     console.log('🧪 [test-signup] Starting signup test')
 
     try {

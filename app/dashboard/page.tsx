@@ -34,24 +34,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-interface SavedGoal {
-  id: number;
-  title: string;
-  description: string;
-  timeline: string;
-  progress: number;
-  status: string;
-  dueDate: string;
-  subGoals: string[];
-  completedSubGoals: number;
-  createdAt: string;
-  milestones: Array<{
-    week: number;
-    task: string;
-    status: string;
-    progress: number;
-  }>;
-}
+import type { SavedGoal } from "@/types";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -110,7 +93,7 @@ function DashboardContent() {
           "No worries! You can upgrade anytime from the billing page.",
       });
     }
-  }, [searchParams, toast]); // Removed refreshProfile from dependencies
+  }, [searchParams, toast, refreshProfile]);
 
   // Sample calendar events (matching the calendar page)
   const [calendarEvents] = useState([
@@ -309,7 +292,7 @@ function DashboardContent() {
   ];
 
   // Use real goals if they exist, otherwise show sample goals
-  const displayGoals = goals ? goals : sampleGoals;
+  const displayGoals = goals && goals.length > 0 ? goals : sampleGoals;
 
   const getWeekDays = (startDate: Date) => {
     const days = [];
@@ -541,9 +524,9 @@ function DashboardContent() {
                               <div className="space-y-2">
                                 {goal.milestones
                                   .slice(0, 3)
-                                  .map((milestone, index) => (
+                                  .map((milestone, milestoneIdx) => (
                                     <div
-                                      key={index}
+                                      key={milestone.week}
                                       className="flex items-center justify-between p-3 bg-stone-50 rounded-2xl"
                                     >
                                       <div className="flex items-center space-x-3">
@@ -575,7 +558,7 @@ function DashboardContent() {
                                           onClick={() =>
                                             markMilestoneComplete(
                                               goal.id,
-                                              index
+                                              milestoneIdx
                                             )
                                           }
                                           className="text-sage-600 hover:text-sage-700 hover:bg-sage-50 rounded-full"
@@ -709,6 +692,7 @@ function DashboardContent() {
                     size="sm"
                     onClick={() => navigateWeek("prev")}
                     className="rounded-full border-stone-200 h-8 w-8 p-0"
+                    aria-label="Previous week"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -717,6 +701,7 @@ function DashboardContent() {
                     size="sm"
                     onClick={() => navigateWeek("next")}
                     className="rounded-full border-stone-200 h-8 w-8 p-0"
+                    aria-label="Next week"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>

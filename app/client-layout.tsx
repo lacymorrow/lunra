@@ -7,7 +7,7 @@ import { GoalDataProvider } from "@/contexts/goal-data-context"
 import { SiteHeader } from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 import { Toaster } from "@/components/ui/toaster"
-import "./globals.css" // Ensure globals.css is imported for base styles
+// globals.css is imported in layout.tsx (server component)
 
 export default function ClientLayout({
   children,

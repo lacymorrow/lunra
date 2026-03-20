@@ -2,6 +2,9 @@ import { createClientServerWithAuth } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ error: 'Not available in production' }, { status: 404 })
+    }
     console.log('🧪 [test-auth] Testing authentication status')
 
     try {

@@ -1,18 +1,42 @@
 import { openai } from "@ai-sdk/openai"
 import { streamText } from "ai"
+import { createClientServerWithAuth } from "@/lib/supabase-server"
+import { NextRequest } from "next/server"
 
 export const maxDuration = 60
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Auth check: require authenticated user
   try {
-    const { messages } = await req.json()
-
-    console.log("API Route - Received messages:", messages)
-    console.log("API Route - Available API keys:", {
-      openai: !!process.env.OPENAI_API_KEY,
-      gemini: !!process.env.GEMINI_API_KEY,
-      anthropic: !!process.env.ANTHROPIC_API_KEY,
+    const supabase = createClientServerWithAuth(req)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
     })
+  }
+
+  try {
+    const body = await req.json()
+    const { messages } = body
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Invalid messages format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    }
+
+    // Limit message count to prevent cost abuse
+    const limitedMessages = messages.slice(-20)
 
     const result = streamText({
       model: openai("gpt-4o"),
@@ -68,7 +92,7 @@ TITLE: [Second Timeline Name]
 2. [Week 2] [Specific sub-goal for second timeline]
 3. [Week 3] [Specific sub-goal for second timeline]"
 
-IMPORTANT: 
+IMPORTANT:
 - For 1 month timeline: Create exactly 4 weekly milestones (Week 1-4)
 - For 2 months timeline: Create exactly 8 weekly milestones (Week 1-8)
 - For 3 months timeline: Create exactly 12 weekly milestones (Week 1-12)
@@ -76,20 +100,14 @@ IMPORTANT:
 - Always reference the user's exact timeline in your response
 
 Keep responses conversational, encouraging, and focused. Remember: ONE QUESTION PER RESPONSE and RESPECT THE TIMELINE.`,
-      messages,
+      messages: limitedMessages,
     })
 
-    console.log("API Route - StreamText result created successfully")
     return result.toDataStreamResponse()
   } catch (error) {
-    console.error("API Route Error:", error)
-
+    console.error("Goal breakdown error:", error)
     return new Response(
-      JSON.stringify({
-        error: "Failed to process request",
-        details: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      }),
+      JSON.stringify({ error: "Failed to process request" }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

@@ -90,21 +90,18 @@ export async function updateUserProfile(
 export async function createSubscription(
 	subscriptionData: Omit<DatabaseSubscription, 'id' | 'created_at' | 'updated_at'>
 ): Promise<DatabaseSubscription | null> {
-	console.log('💳 [createSubscription] Starting subscription creation')
-	console.log('💳 [createSubscription] Subscription data:', subscriptionData)
-
+	// Use upsert to handle race condition between checkout-success and webhook
 	const { data, error } = await getServerClient()
 		.from('subscriptions')
-		.insert(subscriptionData)
+		.upsert(subscriptionData, { onConflict: 'user_id' })
 		.select()
 		.single()
 
 	if (error) {
-		console.error('❌ [createSubscription] Error creating subscription:', error)
+		console.error('Error creating subscription:', error)
 		return null
 	}
 
-	console.log('✅ [createSubscription] Successfully created subscription:', data)
 	return data
 }
 

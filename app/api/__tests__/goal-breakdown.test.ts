@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { NextRequest } from "next/server"
 
 // Mock the AI SDK
 const mockStreamText = vi.fn()
@@ -10,10 +11,20 @@ vi.mock("@ai-sdk/openai", () => ({
 	openai: vi.fn(() => "mocked-model"),
 }))
 
+// Mock supabase-server to bypass auth
+const mockGetUser = vi.fn()
+vi.mock("@/lib/supabase-server", () => ({
+	createClientServerWithAuth: () => ({
+		auth: {
+			getUser: mockGetUser,
+		},
+	}),
+}))
+
 import { POST } from "@/app/api/goal-breakdown/route"
 
-function makeRequest(body: object): Request {
-	return new Request("http://localhost:3000/api/goal-breakdown", {
+function makeRequest(body: object): NextRequest {
+	return new NextRequest("http://localhost:3000/api/goal-breakdown", {
 		method: "POST",
 		body: JSON.stringify(body),
 		headers: {
@@ -25,6 +36,17 @@ function makeRequest(body: object): Request {
 describe("Goal Breakdown API", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		// Default: authenticated user
+		mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null })
+	})
+
+	it("returns 401 for unauthenticated requests", async () => {
+		mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: "Not authenticated" } })
+
+		const req = makeRequest({ messages: [{ role: "user", content: "test" }] })
+		const res = await POST(req)
+
+		expect(res.status).toBe(401)
 	})
 
 	it("returns streaming response for valid messages", async () => {
@@ -64,6 +86,15 @@ describe("Goal Breakdown API", () => {
 		expect(callArgs.system).toContain("MULTIPLE TIMELINE DETECTION")
 	})
 
+	it("returns 400 for invalid messages format", async () => {
+		const req = makeRequest({})
+		const res = await POST(req)
+
+		expect(res.status).toBe(400)
+		const json = await res.json()
+		expect(json.error).toBe("Invalid messages format")
+	})
+
 	it("returns 500 on error", async () => {
 		mockStreamText.mockImplementation(() => {
 			throw new Error("OpenAI API error")
@@ -75,20 +106,5 @@ describe("Goal Breakdown API", () => {
 		expect(res.status).toBe(500)
 		const json = await res.json()
 		expect(json.error).toBe("Failed to process request")
-		expect(json.details).toBe("OpenAI API error")
-		expect(json.timestamp).toBeDefined()
-	})
-
-	it("handles missing messages gracefully", async () => {
-		// When req.json() fails to have messages, streamText should still be called
-		// but the messages field will be undefined
-		mockStreamText.mockImplementation(() => {
-			throw new Error("messages is required")
-		})
-
-		const req = makeRequest({})
-		const res = await POST(req)
-
-		expect(res.status).toBe(500)
 	})
 })

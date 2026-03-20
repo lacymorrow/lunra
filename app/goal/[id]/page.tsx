@@ -220,9 +220,9 @@ export default function GoalDetail() {
               <CardContent>
                 <div className="space-y-4">
                   {goal.milestones && goal.milestones.length > 0 ? (
-                    goal.milestones.map((milestone, index) => (
+                    goal.milestones.map((milestone) => (
                       <div
-                        key={index}
+                        key={milestone.week}
                         className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl"
                       >
                         <div className="flex items-center space-x-4">
@@ -283,31 +283,31 @@ export default function GoalDetail() {
               <CardContent>
                 <div className="space-y-3">
                   {goal.subGoals && goal.subGoals.length > 0 ? (
-                    goal.subGoals.map((subGoal, index) => (
+                    goal.subGoals.map((subGoal, subGoalIdx) => (
                       <div
-                        key={index}
+                        key={`${subGoalIdx}-${subGoal}`}
                         className={`flex items-start p-4 border border-stone-200 rounded-xl ${
-                          index < goal.completedSubGoals
+                          subGoalIdx < goal.completedSubGoals
                             ? "bg-sage-50 border-sage-200"
                             : "bg-white hover:shadow-sm"
                         } transition-shadow`}
                       >
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0 ${
-                            index < goal.completedSubGoals
+                            subGoalIdx < goal.completedSubGoals
                               ? "bg-sage-500 text-white"
                               : "bg-gradient-to-br from-rose-400 to-amber-300 text-white"
                           }`}
                         >
-                          {index < goal.completedSubGoals ? (
+                          {subGoalIdx < goal.completedSubGoals ? (
                             <Check className="h-4 w-4" />
                           ) : (
-                            index + 1
+                            subGoalIdx + 1
                           )}
                         </div>
                         <p
                           className={`flex-1 ${
-                            index < goal.completedSubGoals
+                            subGoalIdx < goal.completedSubGoals
                               ? "text-sage-800 line-through"
                               : "text-stone-700"
                           } font-light`}

@@ -34,13 +34,11 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, userProfile, signOut } = useAuth();
+  const { user, userProfile, signOut, isSupabaseAvailable } = useAuth();
   const { goals, syncStatus } = useGoalData();
 
-  // Use the same data source as the rest of the app
   const hasLocalData = goals.length > 0;
   const localDataCount = goals.length;
-
   const isLanding = variant === "landing";
 
   const handleSignOut = async () => {
@@ -50,12 +48,11 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   // Sync status indicator component
   const SyncStatusIndicator = () => {
     if (isLanding || !user) {
-      // Show local storage indicator for unauthenticated users
       if (hasLocalData) {
         return (
           <div className="flex items-center gap-1">
             <CloudOff className="h-4 w-4 text-amber-500" />
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
               {localDataCount} Local
             </Badge>
           </div>
@@ -64,16 +61,14 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
       return null;
     }
 
-    // For authenticated users - show different status based on plan
     const isPaidUser = user && userProfile?.plan_id === "bloom";
 
     if (isPaidUser) {
-      // Paid users: Show sync status
       if (syncStatus.isLoading) {
         return (
           <div className="flex items-center gap-1">
             <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
-            <Badge variant="default" className="text-xs">
+            <Badge variant="default" className="text-xs hidden sm:inline-flex">
               Syncing...
             </Badge>
           </div>
@@ -88,7 +83,7 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
           return (
             <div className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <Badge variant="destructive" className="text-xs">
+              <Badge variant="destructive" className="text-xs hidden sm:inline-flex">
                 Sync Issues
               </Badge>
             </div>
@@ -101,35 +96,33 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
               <CheckCircle className="h-4 w-4 text-green-500" />
               <Badge
                 variant="default"
-                className="text-xs bg-green-100 text-green-700"
+                className="text-xs bg-green-100 text-green-700 hidden sm:inline-flex"
               >
-                ↕️ Synced
+                Synced
               </Badge>
             </div>
           );
         }
       }
 
-      // Show cloud status for paid users
       return (
         <div className="flex items-center gap-1">
           <Cloud className="h-4 w-4 text-green-500" />
           <Badge
             variant="default"
-            className="text-xs bg-green-100 text-green-700"
+            className="text-xs bg-green-100 text-green-700 hidden sm:inline-flex"
           >
-            Cloud + Local
+            Cloud
           </Badge>
         </div>
       );
     } else {
-      // Free users: Show local-only status
       if (hasLocalData) {
         return (
           <div className="flex items-center gap-1">
             <CloudOff className="h-4 w-4 text-blue-500" />
-            <Badge variant="secondary" className="text-xs">
-              {localDataCount} Local Only
+            <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
+              {localDataCount} Local
             </Badge>
           </div>
         );
@@ -138,8 +131,8 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
       return (
         <div className="flex items-center gap-1">
           <CloudOff className="h-4 w-4 text-blue-500" />
-          <Badge variant="secondary" className="text-xs">
-            Local Mode
+          <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
+            Local
           </Badge>
         </div>
       );
@@ -148,47 +141,48 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
 
   return (
     <header className="border-b border-stone-200 bg-white/90 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+          {/* Logo */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center">
-                <Moon className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-rose-300 to-amber-300 rounded-full flex items-center justify-center">
+                <Moon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <span className="text-2xl font-serif text-stone-800">lunra</span>
+              <span className="text-xl sm:text-2xl font-serif text-stone-800">lunra</span>
             </Link>
           </div>
 
           {isLanding ? (
             // Landing page navigation
             <>
-              <div className="hidden md:flex items-center space-x-10">
+              <nav className="hidden md:flex items-center space-x-8 lg:space-x-10">
                 <a
                   href="#features"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Features
                 </a>
                 <a
                   href="#how-it-works"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   How it Works
                 </a>
                 <a
                   href="#testimonials"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Stories
                 </a>
                 <a
                   href="#pricing"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Pricing
                 </a>
-              </div>
-              <div className="flex items-center space-x-4">
+              </nav>
+              <div className="hidden md:flex items-center space-x-3">
                 <SyncStatusIndicator />
                 {user ? (
                   <Link href="/dashboard">
@@ -198,19 +192,23 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   </Link>
                 ) : (
                   <>
-                    <Link href="/auth/signin">
-                      <Button
-                        variant="ghost"
-                        className="text-stone-600 hover:text-stone-800"
-                      >
-                        Sign In
-                      </Button>
-                    </Link>
-                    <Link href="/auth/signup">
-                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
-                        Sign Up
-                      </Button>
-                    </Link>
+                    {isSupabaseAvailable && (
+                      <Link href="/auth/signin">
+                        <Button
+                          variant="ghost"
+                          className="text-stone-600 hover:text-stone-800"
+                        >
+                          Sign In
+                        </Button>
+                      </Link>
+                    )}
+                    {isSupabaseAvailable && (
+                      <Link href="/auth/signup">
+                        <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                          Sign Up
+                        </Button>
+                      </Link>
+                    )}
                   </>
                 )}
               </div>
@@ -218,58 +216,52 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
           ) : (
             // App navigation
             <>
-              <div className="hidden md:flex items-center space-x-8">
+              <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
                 <Link
                   href="/dashboard"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Dashboard
                 </Link>
                 <Link
-                  href="/create-goal"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
-                >
-                  Create Goal
-                </Link>
-                <Link
                   href="/timeline"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Timeline
                 </Link>
                 <Link
                   href="/calendar"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Calendar
                 </Link>
                 <Link
                   href="/check-in"
-                  className="text-stone-600 hover:text-stone-800 transition-colors font-light"
+                  className="text-stone-600 hover:text-stone-800 transition-colors font-light text-sm lg:text-base"
                 >
                   Check-in
                 </Link>
-                {!user && (
+              </nav>
+
+              <div className="hidden md:flex items-center space-x-3">
+                <SyncStatusIndicator />
+                {!user && isSupabaseAvailable && (
                   <>
                     <Link href="/auth/signin">
                       <Button
                         variant="ghost"
-                        className="text-stone-600 hover:text-stone-800"
+                        className="text-stone-600 hover:text-stone-800 text-sm"
                       >
                         Sign In
                       </Button>
                     </Link>
                     <Link href="/auth/signup">
-                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                      <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-4 text-sm">
                         Sign Up
                       </Button>
                     </Link>
                   </>
                 )}
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <SyncStatusIndicator />
                 {user && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -306,9 +298,8 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                {/* New Goal button remains here */}
                 <Link href="/create-goal">
-                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-6">
+                  <Button className="bg-rose-400 hover:bg-rose-500 text-white border-0 rounded-full px-4 lg:px-6 text-sm">
                     New Goal
                   </Button>
                 </Link>
@@ -316,11 +307,13 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
             </>
           )}
 
+          {/* Mobile menu toggle */}
           <Button
             variant="ghost"
             size="icon"
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? (
               <X className="h-6 w-6" />
@@ -333,8 +326,8 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-stone-100 px-6 py-4">
-          <nav className="flex flex-col space-y-4">
+        <div className="md:hidden bg-white border-t border-stone-100 px-4 sm:px-6 py-4">
+          <nav className="flex flex-col space-y-3">
             {isLanding ? (
               // Landing mobile menu
               <>
@@ -366,25 +359,29 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                 >
                   Pricing
                 </a>
-                <div className="pt-2 border-t border-stone-100">
+                <div className="pt-2 border-t border-stone-100 space-y-2">
                   {user ? (
-                    <Link href="/dashboard">
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                       <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
                         Dashboard
                       </Button>
                     </Link>
                   ) : (
                     <>
-                      <Link href="/auth/signin">
-                        <Button className="w-full mb-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-full">
-                          Sign In
-                        </Button>
-                      </Link>
-                      <Link href="/auth/signup">
-                        <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
-                          Sign Up
-                        </Button>
-                      </Link>
+                      {isSupabaseAvailable && (
+                        <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>
+                          <Button className="w-full mb-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-full">
+                            Sign In
+                          </Button>
+                        </Link>
+                      )}
+                      {isSupabaseAvailable && (
+                        <Link href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>
+                          <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                            Sign Up
+                          </Button>
+                        </Link>
+                      )}
                     </>
                   )}
                 </div>
@@ -428,14 +425,33 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
                   Check-in
                 </Link>
                 <div className="pt-2 border-t border-stone-100">
-                  <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
-                    New Goal
-                  </Button>
+                  <Link href="/create-goal" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                      New Goal
+                    </Button>
+                  </Link>
                 </div>
+                {!user && isSupabaseAvailable && (
+                  <div className="pt-2 border-t border-stone-100 space-y-2">
+                    <Link href="/auth/signin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full bg-rose-400 hover:bg-rose-500 text-white rounded-full">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                )}
                 {user && (
                   <div className="pt-2 border-t border-stone-100">
                     <Button
-                      onClick={handleSignOut}
+                      onClick={() => {
+                        handleSignOut();
+                        setMobileMenuOpen(false);
+                      }}
                       className="w-full bg-white hover:bg-stone-50 text-rose-500 border border-stone-200 rounded-full"
                     >
                       <LogOut className="h-4 w-4 mr-2" />

@@ -21,25 +21,6 @@ interface Goal {
   timeline: string
 }
 
-interface SavedGoal {
-  id: number
-  title: string
-  description: string
-  timeline: string
-  progress: number
-  status: string
-  dueDate: string
-  subGoals: string[]
-  completedSubGoals: number
-  createdAt: string
-  milestones: Array<{
-    week: number
-    task: string
-    status: string
-    progress: number
-  }>
-}
-
 export default function GoalBreakdown() {
   const router = useRouter()
   const [goal, setGoal] = useState<Goal | null>(null)
@@ -382,10 +363,6 @@ export default function GoalBreakdown() {
   }, [append, hasInitialized])
 
   useEffect(() => {
-    console.log("Messages updated:", messages)
-  }, [messages])
-
-  useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading])
 
@@ -478,9 +455,9 @@ export default function GoalBreakdown() {
                   </div>
                 )}
 
-                {messages.map((message, index) => (
+                {messages.map((message) => (
                   <div
-                    key={index}
+                    key={message.id}
                     className={`p-6 rounded-xl ${
                       message.role === "user"
                         ? "bg-stone-50 border border-stone-100 ml-8"
@@ -532,13 +509,13 @@ export default function GoalBreakdown() {
                       </CardDescription>
                     </CardHeader>
                     <div className="space-y-3">
-                      {subGoals.map((subGoal, index) => (
+                      {subGoals.map((subGoal, subGoalIdx) => (
                         <div
-                          key={index}
+                          key={`${subGoalIdx}-${subGoal}`}
                           className="flex items-start p-4 border border-stone-200 rounded-xl bg-white hover:shadow-sm transition-shadow"
                         >
                           <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
-                            {index + 1}
+                            {subGoalIdx + 1}
                           </div>
                           <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
                         </div>
@@ -606,17 +583,17 @@ export default function GoalBreakdown() {
                       </CardDescription>
                     </CardHeader>
                     <div className="space-y-6">
-                      {allGeneratedGoals.map((timeline, timelineIndex) => (
-                        <div key={timelineIndex} className="border border-stone-200 rounded-xl p-6 bg-white">
+                      {allGeneratedGoals.map((timeline) => (
+                        <div key={timeline.title} className="border border-stone-200 rounded-xl p-6 bg-white">
                           <h3 className="font-serif text-xl text-stone-800 mb-4">{timeline.title}</h3>
                           <div className="space-y-3">
-                            {timeline.subGoals.map((subGoal, index) => (
+                            {timeline.subGoals.map((subGoal, subGoalIdx) => (
                               <div
-                                key={index}
+                                key={`${subGoalIdx}-${subGoal}`}
                                 className="flex items-start p-4 border border-stone-100 rounded-xl hover:shadow-sm transition-shadow"
                               >
                                 <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-amber-300 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4 flex-shrink-0">
-                                  {index + 1}
+                                  {subGoalIdx + 1}
                                 </div>
                                 <p className="flex-1 text-stone-700 font-light">{subGoal}</p>
                               </div>
@@ -670,24 +647,26 @@ export default function GoalBreakdown() {
                 </form>
               </div>
 
-              <div className="p-6 pt-0 flex-shrink-0">
-                <Collapsible defaultOpen={false}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-800">
-                      Show Debug Info
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-600">
-                      <p>Debug: Messages count: {messages.length}</p>
-                      <p>Questions asked: {questionCount}</p>
-                      <p>Sub-goals: {subGoals.length}</p>
-                      <p>Has saved: {hasSaved ? "Yes" : "No"}</p>
-                      <p>Loading: {isLoading ? "Yes" : "No"}</p>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
+              {process.env.NODE_ENV === "development" && (
+                <div className="p-6 pt-0 flex-shrink-0">
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-800">
+                        Show Debug Info
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="mt-2 p-3 bg-gray-100 rounded text-xs text-gray-600">
+                        <p>Debug: Messages count: {messages.length}</p>
+                        <p>Questions asked: {questionCount}</p>
+                        <p>Sub-goals: {subGoals.length}</p>
+                        <p>Has saved: {hasSaved ? "Yes" : "No"}</p>
+                        <p>Loading: {isLoading ? "Yes" : "No"}</p>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              )}
             </Card>
           </div>
 

@@ -23,7 +23,7 @@ export function DashboardPageHeader({
   children,
 }: DashboardPageHeaderProps) {
   return (
-    <div className="mb-12">
+    <div className="container mx-auto px-4 sm:px-6 mb-12">
       {showBack && (
         <Link href={backHref} className="inline-flex items-center text-rose-500 hover:text-rose-600 mb-4 font-light">
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -32,7 +32,7 @@ export function DashboardPageHeader({
       )}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-4xl font-serif text-stone-800 mb-3">{title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif text-stone-800 mb-3">{title}</h1>
           <p className="text-stone-600 font-light">{description}</p>
         </div>
         {children && <div className="flex items-center space-x-4">{children}</div>}

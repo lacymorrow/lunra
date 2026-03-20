@@ -706,30 +706,42 @@ export default function Calendar() {
                 <CardTitle className="text-xl font-serif text-stone-800">This Month</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-600 font-light">Total Events</span>
-                  <span className="font-medium text-stone-800">{events.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-600 font-light">Completed</span>
-                  <span className="font-medium text-sage-600">{events.filter((e) => e.completed).length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-600 font-light">Appointments</span>
-                  <span className="font-medium text-cyan-600">
-                    {events.filter((e) => e.type === "appointment").length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-600 font-light">Meetings</span>
-                  <span className="font-medium text-blue-600">{events.filter((e) => e.type === "meeting").length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-stone-600 font-light">High Priority</span>
-                  <span className="font-medium text-rose-600">
-                    {events.filter((e) => e.priority === "high" && !e.completed).length}
-                  </span>
-                </div>
+                {(() => {
+                  const year = currentDate.getFullYear()
+                  const month = currentDate.getMonth()
+                  const monthEvents = events.filter((e) => {
+                    const d = new Date(e.date)
+                    return d.getFullYear() === year && d.getMonth() === month
+                  })
+                  return (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 font-light">Total Events</span>
+                        <span className="font-medium text-stone-800">{monthEvents.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 font-light">Completed</span>
+                        <span className="font-medium text-sage-600">{monthEvents.filter((e) => e.completed).length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 font-light">Appointments</span>
+                        <span className="font-medium text-cyan-600">
+                          {monthEvents.filter((e) => e.type === "appointment").length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 font-light">Meetings</span>
+                        <span className="font-medium text-blue-600">{monthEvents.filter((e) => e.type === "meeting").length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 font-light">High Priority</span>
+                        <span className="font-medium text-rose-600">
+                          {monthEvents.filter((e) => e.priority === "high" && !e.completed).length}
+                        </span>
+                      </div>
+                    </>
+                  )
+                })()}
               </CardContent>
             </Card>
 

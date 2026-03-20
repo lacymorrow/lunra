@@ -20,7 +20,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function BillingPage() {
   const {
@@ -48,9 +48,14 @@ export default function BillingPage() {
     );
   }
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (use effect to avoid calling during render)
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/auth/signin");
+    }
+  }, [isLoading, user, router]);
+
   if (!user) {
-    router.push("/auth/signin");
     return null;
   }
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
-import { type GoalDataManager, getDataManager } from "@/lib/data-manager";
+import { type GoalDataManager, cleanupDataManager, getDataManager } from "@/lib/data-manager";
 import type { SavedGoal } from "@/types";
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 interface SyncStatus {
   isLoading: boolean;
@@ -50,12 +50,32 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
     bidirectionalResult: null,
   });
 
+  // Keep a ref to the data manager so refreshGoals always reads the latest
+  const managerRef = useRef<GoalDataManager>(dataManager);
+
+  // Stable refreshGoals that reads from the ref
+  const refreshGoals = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const fetchedGoals = await managerRef.current.getGoals();
+      setGoals(fetchedGoals);
+    } catch (err) {
+      console.error("Error fetching goals:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Update data manager when user or profile changes
   useEffect(() => {
     const manager = getDataManager(user?.id || undefined, userProfile);
     setDataManager(manager);
+    managerRef.current = manager;
 
-    // If user just logged in, do initial sync
+    // If user just logged in, do initial sync (only for authenticated users)
     if (user?.id) {
       setSyncStatus({
         isLoading: true,
@@ -84,39 +104,29 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
             },
             bidirectionalResult: null,
           });
+          // Still load local goals even if sync fails
+          refreshGoals();
         });
     } else {
       refreshGoals();
     }
-  }, [user?.id, userProfile?.plan_id]);
 
-  // Function to refresh goals
-  const refreshGoals = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const fetchedGoals = await dataManager.getGoals();
-      setGoals(fetchedGoals);
-    } catch (err) {
-      console.error("Error fetching goals:", err);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Cleanup on unmount: destroy the data manager (stops auto-sync interval)
+    return () => {
+      cleanupDataManager();
+    };
+  }, [user?.id, userProfile?.plan_id, refreshGoals]);
 
   // Manual sync for paid users
-  const triggerManualSync = async () => {
+  const triggerManualSync = useCallback(async () => {
     if (!user?.id || userProfile?.plan_id !== "bloom") {
-      console.log("Manual sync not available for non-paid users");
       return;
     }
 
     setSyncStatus((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      const result = await dataManager.bidirectionalSync();
+      const result = await managerRef.current.bidirectionalSync();
       setSyncStatus((prev) => ({
         ...prev,
         isLoading: false,
@@ -136,7 +146,7 @@ export function GoalDataProvider({ children }: { children: React.ReactNode }) {
         },
       }));
     }
-  };
+  }, [user?.id, userProfile?.plan_id, refreshGoals]);
 
   return (
     <GoalDataContext.Provider

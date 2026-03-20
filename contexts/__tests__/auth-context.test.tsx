@@ -19,6 +19,7 @@ const mockResetPasswordForEmail = vi.fn()
 const mockOnAuthStateChange = vi.fn()
 
 vi.mock("@/lib/supabase", () => ({
+	isSupabaseConfigured: true,
 	supabase: () => ({
 		auth: {
 			signInWithPassword: mockSignInWithPassword,
