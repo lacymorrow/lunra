@@ -6,21 +6,15 @@ import { NextRequest } from "next/server"
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  // Auth check: require authenticated user
+  // Auth check: optional — allow unauthenticated users (free/Seedling plan) to use AI coaching
   try {
     const supabase = createClientServerWithAuth(req)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      console.log("Authenticated check-in-coach request from user:", user.id)
     }
   } catch {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    })
+    // Continue without auth — free users can still use the feature
   }
 
   try {

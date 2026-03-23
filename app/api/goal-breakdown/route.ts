@@ -6,21 +6,16 @@ import { NextRequest } from "next/server"
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  // Auth check: require authenticated user
+  // Auth check: optional — allow unauthenticated users (free/Seedling plan) to use AI breakdown
   try {
     const supabase = createClientServerWithAuth(req)
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      })
+    const { data: { user } } = await supabase.auth.getUser()
+    // User may be null for free-tier users using localStorage only
+    if (user) {
+      console.log("Authenticated goal-breakdown request from user:", user.id)
     }
   } catch {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    })
+    // Continue without auth — free users can still use the feature
   }
 
   try {
@@ -37,6 +32,15 @@ export async function POST(req: NextRequest) {
 
     // Limit message count to prevent cost abuse
     const limitedMessages = messages.slice(-20)
+
+    // Verify OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set")
+      return new Response(
+        JSON.stringify({ error: "OpenAI API key is not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      )
+    }
 
     const result = streamText({
       model: openai("gpt-4o"),
