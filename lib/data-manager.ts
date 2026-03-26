@@ -30,48 +30,45 @@ function getLocalGoals(): SavedGoal[] {
 }
 
 /**
- * Deduplicate goals by dbId first, then by title+description signature.
- * Keeps the goal with the most recent createdAt when duplicates exist.
+ * Deduplicate goals in two passes:
+ * 1. Group by title+description signature, keeping newest and preserving dbId.
+ * 2. Deduplicate by dbId (handles renamed goals pointing to the same DB record).
  */
 function deduplicateGoals(goals: SavedGoal[]): SavedGoal[] {
-	const seenDbIds = new Map<string, SavedGoal>()
-	const seenSignatures = new Map<string, SavedGoal>()
-	const result: SavedGoal[] = []
+	// Pass 1: deduplicate by signature, keep newest, merge dbId from either copy
+	const bySig = new Map<string, SavedGoal>()
 
 	for (const goal of goals) {
-		// Dedup by dbId (prefer the one with later createdAt)
-		if (goal.dbId) {
-			const existing = seenDbIds.get(goal.dbId)
-			if (existing) {
-				if (new Date(goal.createdAt) > new Date(existing.createdAt)) {
-					// Replace the older one
-					const idx = result.indexOf(existing)
-					if (idx !== -1) result[idx] = goal
-					seenDbIds.set(goal.dbId, goal)
-				}
-				continue
-			}
-			seenDbIds.set(goal.dbId, goal)
+		const sig = goalSignature(goal.title, goal.description)
+		const existing = bySig.get(sig)
+
+		if (!existing) {
+			bySig.set(sig, goal)
+			continue
 		}
 
-		// Dedup by signature for goals without dbId
-		const sig = goalSignature(goal.title, goal.description)
-		if (!goal.dbId) {
-			const existing = seenSignatures.get(sig)
-			if (existing) {
-				if (new Date(goal.createdAt) > new Date(existing.createdAt)) {
-					const idx = result.indexOf(existing)
-					if (idx !== -1) result[idx] = goal
-					seenSignatures.set(sig, goal)
-				}
-				continue
-			}
-		}
-		seenSignatures.set(sig, goal)
-		result.push(goal)
+		const winner = new Date(goal.createdAt) > new Date(existing.createdAt) ? goal : existing
+		const loser = winner === goal ? existing : goal
+		bySig.set(sig, { ...winner, dbId: winner.dbId || loser.dbId })
 	}
 
-	return result
+	// Pass 2: deduplicate by dbId (same DB record with different signatures)
+	const byDbId = new Map<string, SavedGoal>()
+	const noDbId: SavedGoal[] = []
+
+	for (const goal of bySig.values()) {
+		if (!goal.dbId) {
+			noDbId.push(goal)
+			continue
+		}
+
+		const existing = byDbId.get(goal.dbId)
+		if (!existing || new Date(goal.createdAt) > new Date(existing.createdAt)) {
+			byDbId.set(goal.dbId, goal)
+		}
+	}
+
+	return [...byDbId.values(), ...noDbId]
 }
 
 function setLocalGoals(goals: SavedGoal[]): void {
