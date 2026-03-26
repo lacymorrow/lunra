@@ -29,6 +29,51 @@ function getLocalGoals(): SavedGoal[] {
 	}
 }
 
+/**
+ * Deduplicate goals by dbId first, then by title+description signature.
+ * Keeps the goal with the most recent createdAt when duplicates exist.
+ */
+function deduplicateGoals(goals: SavedGoal[]): SavedGoal[] {
+	const seenDbIds = new Map<string, SavedGoal>()
+	const seenSignatures = new Map<string, SavedGoal>()
+	const result: SavedGoal[] = []
+
+	for (const goal of goals) {
+		// Dedup by dbId (prefer the one with later createdAt)
+		if (goal.dbId) {
+			const existing = seenDbIds.get(goal.dbId)
+			if (existing) {
+				if (new Date(goal.createdAt) > new Date(existing.createdAt)) {
+					// Replace the older one
+					const idx = result.indexOf(existing)
+					if (idx !== -1) result[idx] = goal
+					seenDbIds.set(goal.dbId, goal)
+				}
+				continue
+			}
+			seenDbIds.set(goal.dbId, goal)
+		}
+
+		// Dedup by signature for goals without dbId
+		const sig = goalSignature(goal.title, goal.description)
+		if (!goal.dbId) {
+			const existing = seenSignatures.get(sig)
+			if (existing) {
+				if (new Date(goal.createdAt) > new Date(existing.createdAt)) {
+					const idx = result.indexOf(existing)
+					if (idx !== -1) result[idx] = goal
+					seenSignatures.set(sig, goal)
+				}
+				continue
+			}
+		}
+		seenSignatures.set(sig, goal)
+		result.push(goal)
+	}
+
+	return result
+}
+
 function setLocalGoals(goals: SavedGoal[]): void {
 	if (typeof window === "undefined") return
 	localStorage.setItem(GOALS_KEY, JSON.stringify(goals))
@@ -270,9 +315,11 @@ export class GoalDataManager {
 				}
 			}
 
+			// --- Deduplicate after sync down ---
+			localGoals = deduplicateGoals(getLocalGoals())
+			setLocalGoals(localGoals)
+
 			// --- Sync UP: local → DB ---
-			// Re-read local goals (may have been mutated above)
-			localGoals = getLocalGoals()
 			const dbUuids = new Set(dbGoals.map(g => g.id))
 
 			for (const localGoal of localGoals) {
@@ -358,12 +405,18 @@ export class GoalDataManager {
 				dbGoalsBySignature.set(goalSignature(g.title, g.description), g.id)
 			}
 
+			// Deduplicate local goals before syncing
+			const dedupedLocalGoals = deduplicateGoals(localGoals)
+			if (dedupedLocalGoals.length < localGoals.length) {
+				setLocalGoals(dedupedLocalGoals)
+			}
+
 			let synced = 0
 			let skipped = 0
 			const errors: string[] = []
 
 			// Process each local goal
-			for (const localGoal of localGoals) {
+			for (const localGoal of dedupedLocalGoals) {
 				// Already linked to a DB record?
 				if (localGoal.dbId) {
 					skipped++
@@ -436,7 +489,13 @@ export class GoalDataManager {
 	// ----------------------------------------------------------------
 
 	async getGoals(): Promise<SavedGoal[]> {
-		return getLocalGoals()
+		const goals = getLocalGoals()
+		const deduped = deduplicateGoals(goals)
+		// If dedup removed any, persist the clean list
+		if (deduped.length < goals.length) {
+			setLocalGoals(deduped)
+		}
+		return deduped
 	}
 
 	async getGoalById(id: number | string): Promise<SavedGoal | null> {
