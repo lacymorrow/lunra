@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import type React from "react";
 import ClientLayout from "./client-layout"; // Import the ClientLayout
 import "./globals.css";
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body>
         {/* Wrap children with ClientLayout */}
         <ClientLayout>{children}</ClientLayout>
+        <Script defer src="https://analytics.lacy.sh/script.js" data-website-id="e9c703cb-bc06-483c-b42c-a9a5c4998dd0" />
       </body>
     </html>
   );
