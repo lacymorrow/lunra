@@ -293,19 +293,34 @@ export class GoalDataManager {
 				const matchBySig = localBySig.get(sig)
 				if (matchBySig && !matchBySig.dbId) {
 					// Link the existing local goal to this DB record
+					matchBySig.dbId = dbUuid
 					updateLocalGoal(matchBySig.id, { dbId: dbUuid })
 					knownDbIds.add(dbUuid)
 					localByDbId.set(dbUuid, matchBySig)
+					// Update sig map so future goals with same sig don't re-match
+					localBySig.set(sig, matchBySig)
+					continue
+				}
+
+				// Check if we already pulled a goal with this same signature in a
+				// previous iteration of this loop (prevents creating duplicates when
+				// the DB has multiple records with identical title+description).
+				const existingBySig = localBySig.get(sig)
+				if (existingBySig && existingBySig.dbId) {
+					// Already have this content locally with a different dbId — skip
 					continue
 				}
 
 				// Truly new from DB — pull down
 				try {
-					localGoals = getLocalGoals() // re-read in case prior iteration mutated
 					const newId = generateNextId(localGoals)
 					const newLocal: SavedGoal = { ...dbGoal, id: newId, dbId: dbUuid }
 					localGoals.push(newLocal)
 					setLocalGoals(localGoals)
+					// Update all maps so subsequent iterations see this goal
+					knownDbIds.add(dbUuid)
+					localByDbId.set(dbUuid, newLocal)
+					localBySig.set(sig, newLocal)
 					result.dbToLocalSynced++
 				} catch (error) {
 					result.errors.push(`Failed to sync DB goal "${dbGoal.title}" locally: ${error instanceof Error ? error.message : String(error)}`)
